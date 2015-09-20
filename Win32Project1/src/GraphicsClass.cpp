@@ -27,12 +27,27 @@ bool GraphicsClass::initialize(int screenHeight, int screenWidth, HWND hwnd)
 		return false;
 	}
 
+	// Initialize the Direct3D object
+	result = direct3D->initialize(screenHeight, screenWidth, hwnd, VSYNC_ENABLED, FULL_SCREEN);
+
+	if (!result)
+	{
+		MessageBox(hwnd, L"Could not initialize Direct3D", L"Error", MB_OK);
+		return false;
+	}
+
 	return true;
 }
 
 
 void GraphicsClass::shutDown()
 {
+	if (direct3D)
+	{
+		direct3D->shutdown();
+		delete direct3D;
+		direct3D = 0;
+	}
 
 	return;
 }
@@ -40,6 +55,12 @@ void GraphicsClass::shutDown()
 
 bool GraphicsClass::frame()
 {
+	bool result = render();
+
+	if (!result)
+	{
+		return false;
+	}
 
 	return true;
 }
@@ -47,6 +68,12 @@ bool GraphicsClass::frame()
 
 bool GraphicsClass::render()
 {
+	// Render the scene via the direct3D object
+	bool result = direct3D->render();
+	if (!result)
+	{
+		return false;
+	}
 
 	return true;
 }
