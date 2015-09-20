@@ -2,6 +2,7 @@
 
 GraphicsClass::GraphicsClass()
 {
+	direct3D = 0;
 }
 
 
@@ -17,6 +18,14 @@ GraphicsClass::~GraphicsClass()
 
 bool GraphicsClass::initialize(int screenHeight, int screenWidth, HWND hwnd)
 {
+	bool result;
+
+	// Create the Direct3D object
+	direct3D = new D3DClass;
+	if (!direct3D)
+	{
+		return false;
+	}
 
 	return true;
 }
