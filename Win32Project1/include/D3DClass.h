@@ -6,6 +6,14 @@
 
 #include <d3d12.h>
 #include <dxgi1_4.h>
+#include <d3dcompiler.h>
+#include <DirectXMath.h>
+#include <wrl/client.h>
+#include "DXSampleHelper.h"
+#include <string>
+
+using namespace DirectX;
+using namespace Microsoft::WRL;
 
 class D3DClass
 {
@@ -20,6 +28,11 @@ public:
 	bool render();
 
 private:
+	std::wstring getAssetFullPath(LPCWSTR assetName);
+
+
+
+
 	bool m_vsync_enabled;
 	ID3D12Device* m_device;
 	ID3D12CommandQueue* m_commandQueue;
@@ -33,6 +46,7 @@ private:
 	ID3D12PipelineState* m_pipelineState;
 	ID3D12Fence* m_fence;
 	HANDLE m_fenceEvent;
+	ComPtr<ID3D12RootSignature> m_rootSignature;
 	unsigned long long m_fenceValue;
 };
 
