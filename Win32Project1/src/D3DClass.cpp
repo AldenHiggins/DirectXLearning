@@ -386,17 +386,50 @@ bool D3DClass::initialize(int screenHeight, int screenWidth, HWND hwnd, bool vsy
 	}
 
 	// Create a basic command list.
-	result = m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator, NULL, __uuidof(ID3D12GraphicsCommandList), (void**)&m_commandList);
-	if (FAILED(result))
-	{
-		return false;
-	}
+	ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator, m_pipelineState, IID_PPV_ARGS(&m_commandList)));
 
 	// Initially we need to close the command list during initialization as it is created in a recording state.
 	result = m_commandList->Close();
 	if (FAILED(result))
 	{
 		return false;
+	}
+
+	// Create the vertex buffer.
+	{
+		// Define the geometry for a triangle.
+		float aspectRatio = static_cast<float>(screenWidth) / static_cast<float>(screenHeight);
+		Vertex triangleVertices[] =
+		{
+			{ { 0.0f, 0.25f * aspectRatio, 0.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } },
+			{ { 0.25f, -0.25f * aspectRatio, 0.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
+			{ { -0.25f, -0.25f * aspectRatio, 0.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } }
+		};
+
+		const UINT vertexBufferSize = sizeof(triangleVertices);
+
+		// Note: using upload heaps to transfer static data like vert buffers is not 
+		// recommended. Every time the GPU needs it, the upload heap will be marshalled 
+		// over. Please read up on Default Heap usage. An upload heap is used here for 
+		// code simplicity and because there are very few verts to actually transfer.
+		ThrowIfFailed(m_device->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&m_vertexBuffer)));
+
+		// Copy the triangle data to the vertex buffer.
+		UINT8* pVertexDataBegin;
+		ThrowIfFailed(m_vertexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pVertexDataBegin)));
+		memcpy(pVertexDataBegin, triangleVertices, sizeof(triangleVertices));
+		m_vertexBuffer->Unmap(0, nullptr);
+
+		// Initialize the vertex buffer view.
+		m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
+		m_vertexBufferView.StrideInBytes = sizeof(Vertex);
+		m_vertexBufferView.SizeInBytes = vertexBufferSize;
 	}
 
 	// Create a fence for GPU synchronization.

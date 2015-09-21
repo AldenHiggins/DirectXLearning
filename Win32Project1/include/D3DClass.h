@@ -30,8 +30,11 @@ public:
 private:
 	std::wstring getAssetFullPath(LPCWSTR assetName);
 
-
-
+	struct Vertex
+	{
+		XMFLOAT3 position;
+		XMFLOAT4 color;
+	};
 
 	bool m_vsync_enabled;
 	ID3D12Device* m_device;
@@ -47,6 +50,9 @@ private:
 	ID3D12Fence* m_fence;
 	HANDLE m_fenceEvent;
 	ComPtr<ID3D12RootSignature> m_rootSignature;
+	ComPtr<ID3D12Resource> m_vertexBuffer;
+	D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
+
 	unsigned long long m_fenceValue;
 };
 
