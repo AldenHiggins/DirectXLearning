@@ -11,10 +11,6 @@
 
 #pragma once
 
-#include <wrl.h>
-#include <wrl/client.h>
-#include <exception>
-
 inline void ThrowIfFailed(HRESULT hr)
 {
 	if (FAILED(hr))
