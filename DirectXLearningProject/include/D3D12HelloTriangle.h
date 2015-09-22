@@ -12,6 +12,8 @@
 #pragma once
 
 #include "DXSample.h"
+#include "SimpleCamera.h"
+#include "StepTimer.h"
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -50,6 +52,12 @@ private:
 	ComPtr<ID3D12PipelineState> m_pipelineState;
 	ComPtr<ID3D12GraphicsCommandList> m_commandList;
 	UINT m_rtvDescriptorSize;
+
+	// Timer system
+	StepTimer m_timer;
+
+	// Camera system
+	SimpleCamera m_simpleCamera;
 
 	// App resources.
 	ComPtr<ID3D12Resource> m_vertexBuffer;

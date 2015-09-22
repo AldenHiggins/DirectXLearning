@@ -29,6 +29,7 @@ D3D12HelloTriangle::D3D12HelloTriangle(UINT width, UINT height, std::wstring nam
 
 void D3D12HelloTriangle::OnInit()
 {
+	m_simpleCamera.Init({ 0, 3, 4 });
 	LoadPipeline();
 	LoadAssets();
 }
@@ -257,6 +258,11 @@ void D3D12HelloTriangle::LoadAssets()
 // Update frame-based values.
 void D3D12HelloTriangle::OnUpdate()
 {
+	m_timer.Tick(NULL);
+
+
+	m_simpleCamera.Update(static_cast<float>(m_timer.GetElapsedSeconds()));
+	m_pcurrentframeresource->updateconstantbuffers(m_simplecamera.getviewmatrix(), m_simplecamera.getprojectionmatrix(0.8f, m_aspectratio));
 }
 
 // Render the scene.

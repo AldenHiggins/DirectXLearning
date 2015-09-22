@@ -26,6 +26,7 @@
 #include <D3Dcompiler.h>
 #include <DirectXMath.h>
 #include "d3dx12.h"
+#include "SimpleCamera.h"
 
 #include <string>
 #include <wrl.h>
