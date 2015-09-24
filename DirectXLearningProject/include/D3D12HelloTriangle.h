@@ -53,6 +53,9 @@ private:
 	ComPtr<ID3D12GraphicsCommandList> m_commandList;
 	UINT m_rtvDescriptorSize;
 
+	// Pointer to the vertex buffer
+	Vertex* pVertexDataBegin;
+
 	// Timer system
 	StepTimer m_timer;
 

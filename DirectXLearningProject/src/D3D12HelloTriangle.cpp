@@ -29,7 +29,7 @@ D3D12HelloTriangle::D3D12HelloTriangle(UINT width, UINT height, std::wstring nam
 
 void D3D12HelloTriangle::OnInit()
 {
-	m_simpleCamera.Init({ 0, 3, 4 });
+	m_simpleCamera.Init({ 0, 0, 2 });
 	LoadPipeline();
 	LoadAssets();
 }
@@ -201,13 +201,13 @@ void D3D12HelloTriangle::LoadAssets()
 		// Define the geometry for a triangle.
 		Vertex triangleVertices[] =
 		{
-			{ { 0.0f, 0.25f * m_aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
-			{ { 0.25f, -0.25f * m_aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-			{ { -0.25f, -0.25f * m_aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
+			{ { 0.0f, 0.45f * m_aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+			{ { 0.95f, -0.45f * m_aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+			{ { -0.95f, -0.45f * m_aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
 
-			{ { -0.25f, -0.25f * m_aspectRatio, 0.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
-			{ { -0.25f, 0.25f * m_aspectRatio, 0.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
-			{ { 0.0f, 0.25f * m_aspectRatio, 0.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } }
+			{ { -0.95f, -0.45f * m_aspectRatio, 0.0f },{ 0.0f, 0.0f, 1.0f, 1.0f } },
+			{ { -0.95f, 0.45f * m_aspectRatio, 0.0f },{ 0.0f, 1.0f, 0.0f, 1.0f } },
+			{ { 0.0f, 0.45f * m_aspectRatio, 0.0f },{ 1.0f, 0.0f, 0.0f, 1.0f } }
 		};
 
 		const UINT vertexBufferSize = sizeof(triangleVertices);
@@ -225,7 +225,7 @@ void D3D12HelloTriangle::LoadAssets()
 			IID_PPV_ARGS(&m_vertexBuffer)));
 
 		// Copy the triangle data to the vertex buffer.
-		UINT8* pVertexDataBegin;
+		//UINT8* pVertexDataBegin;
 		ThrowIfFailed(m_vertexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pVertexDataBegin)));
 		memcpy(pVertexDataBegin, triangleVertices, sizeof(triangleVertices));
 		m_vertexBuffer->Unmap(0, nullptr);
@@ -253,6 +253,31 @@ void D3D12HelloTriangle::LoadAssets()
 		// complete before continuing.
 		WaitForPreviousFrame();
 	}
+
+	//m_timer.Tick(NULL);
+
+
+	//m_simpleCamera.Update(static_cast<float>(m_timer.GetElapsedSeconds()));
+	////m_pcurrentframeresource->updateconstantbuffers(m_simpleCamera.getviewmatrix(), m_simpleCamera.getprojectionmatrix(0.8f, m_aspectratio));
+
+	//for (int vertexIndex = 0; vertexIndex < 6; vertexIndex++)
+	//{
+	//	//pVertexDataBegin[vertexIndex].position;
+	//	XMVECTORF32 vertexPosition;
+	//	vertexPosition = { pVertexDataBegin[vertexIndex].position.x, pVertexDataBegin[vertexIndex].position.y, pVertexDataBegin[vertexIndex].position.z };
+	//	XMVECTOR vector = XMVector3Transform(
+	//		vertexPosition,
+	//		m_simpleCamera.GetViewMatrix() * m_simpleCamera.GetProjectionMatrix(0.8f, m_aspectRatio)
+	//		);
+
+	//	vertexIndex = vertexIndex;
+
+	//	pVertexDataBegin[vertexIndex].position.x = XMVectorGetX(vector);
+	//	pVertexDataBegin[vertexIndex].position.y = XMVectorGetY(vector);
+	//	pVertexDataBegin[vertexIndex].position.z = XMVectorGetZ(vector);
+
+	//	vertexIndex = vertexIndex;
+	//}
 }
 
 // Update frame-based values.
@@ -262,7 +287,22 @@ void D3D12HelloTriangle::OnUpdate()
 
 
 	m_simpleCamera.Update(static_cast<float>(m_timer.GetElapsedSeconds()));
-	m_pcurrentframeresource->updateconstantbuffers(m_simplecamera.getviewmatrix(), m_simplecamera.getprojectionmatrix(0.8f, m_aspectratio));
+	//m_pcurrentframeresource->updateconstantbuffers(m_simpleCamera.getviewmatrix(), m_simpleCamera.getprojectionmatrix(0.8f, m_aspectratio));
+
+	for (int vertexIndex = 0; vertexIndex < 6; vertexIndex++)
+	{
+		//pVertexDataBegin[vertexIndex].position;
+		XMVECTORF32 vertexPosition;
+		vertexPosition = { pVertexDataBegin[vertexIndex].position.x, pVertexDataBegin[vertexIndex].position.y, pVertexDataBegin[vertexIndex].position.z };
+		XMVECTOR vector = XMVector3Transform(
+			vertexPosition,
+			m_simpleCamera.GetViewMatrix() * m_simpleCamera.GetProjectionMatrix(0.8f, m_aspectRatio)
+			);
+		
+		pVertexDataBegin[vertexIndex].position.x = XMVectorGetX(vector);
+		pVertexDataBegin[vertexIndex].position.y = XMVectorGetY(vector);
+		pVertexDataBegin[vertexIndex].position.z = XMVectorGetZ(vector);
+	}
 }
 
 // Render the scene.
@@ -290,8 +330,19 @@ void D3D12HelloTriangle::OnDestroy()
 	CloseHandle(m_fenceEvent);
 }
 
-bool D3D12HelloTriangle::OnEvent(MSG)
+bool D3D12HelloTriangle::OnEvent(MSG msg)
 {
+	switch (msg.message)
+	{
+	case WM_KEYDOWN:
+		m_simpleCamera.OnKeyDown(msg.wParam);
+		break;
+
+	case WM_KEYUP:
+		m_simpleCamera.OnKeyUp(msg.wParam);
+		break;
+	}
+
 	return false;
 }
 
