@@ -283,26 +283,26 @@ void D3D12HelloTriangle::LoadAssets()
 // Update frame-based values.
 void D3D12HelloTriangle::OnUpdate()
 {
-	m_timer.Tick(NULL);
+	//m_timer.Tick(NULL);
 
 
-	m_simpleCamera.Update(static_cast<float>(m_timer.GetElapsedSeconds()));
-	//m_pcurrentframeresource->updateconstantbuffers(m_simpleCamera.getviewmatrix(), m_simpleCamera.getprojectionmatrix(0.8f, m_aspectratio));
+	//m_simpleCamera.Update(static_cast<float>(m_timer.GetElapsedSeconds()));
+	////m_pcurrentframeresource->updateconstantbuffers(m_simpleCamera.getviewmatrix(), m_simpleCamera.getprojectionmatrix(0.8f, m_aspectratio));
 
-	for (int vertexIndex = 0; vertexIndex < 6; vertexIndex++)
-	{
-		//pVertexDataBegin[vertexIndex].position;
-		XMVECTORF32 vertexPosition;
-		vertexPosition = { pVertexDataBegin[vertexIndex].position.x, pVertexDataBegin[vertexIndex].position.y, pVertexDataBegin[vertexIndex].position.z };
-		XMVECTOR vector = XMVector3Transform(
-			vertexPosition,
-			m_simpleCamera.GetViewMatrix() * m_simpleCamera.GetProjectionMatrix(0.8f, m_aspectRatio)
-			);
-		
-		pVertexDataBegin[vertexIndex].position.x = XMVectorGetX(vector);
-		pVertexDataBegin[vertexIndex].position.y = XMVectorGetY(vector);
-		pVertexDataBegin[vertexIndex].position.z = XMVectorGetZ(vector);
-	}
+	//for (int vertexIndex = 0; vertexIndex < 6; vertexIndex++)
+	//{
+	//	//pVertexDataBegin[vertexIndex].position;
+	//	XMVECTORF32 vertexPosition;
+	//	vertexPosition = { pVertexDataBegin[vertexIndex].position.x, pVertexDataBegin[vertexIndex].position.y, pVertexDataBegin[vertexIndex].position.z };
+	//	XMVECTOR vector = XMVector3Transform(
+	//		vertexPosition,
+	//		m_simpleCamera.GetViewMatrix() * m_simpleCamera.GetProjectionMatrix(0.8f, m_aspectRatio)
+	//		);
+	//	
+	//	pVertexDataBegin[vertexIndex].position.x = XMVectorGetX(vector);
+	//	pVertexDataBegin[vertexIndex].position.y = XMVectorGetY(vector);
+	//	pVertexDataBegin[vertexIndex].position.z = XMVectorGetZ(vector);
+	//}
 }
 
 // Render the scene.
