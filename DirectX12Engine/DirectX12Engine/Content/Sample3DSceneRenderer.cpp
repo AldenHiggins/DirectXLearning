@@ -28,13 +28,15 @@ DirectX::XMFLOAT3 rotatedVectorPrint;
 Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) :
 	m_loadingComplete(false),
 	m_radiansPerSecond(XM_PIDIV4),	// rotate 45 degrees per second
-	m_angle(0),
 	m_tracking(false),
 	m_mappedConstantBuffer(nullptr),
 	m_deviceResources(deviceResources)
 {
 	LoadState();
 	ZeroMemory(&m_constantBufferData, sizeof(m_constantBufferData));
+
+	m_cameraPitch = 0;
+	m_cameraYaw = 0;
 
 	CreateDeviceDependentResources();
 	CreateWindowSizeDependentResources();
@@ -362,7 +364,7 @@ void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
 		if (!m_tracking)
 		{
 			// Rotate the cube a small amount.
-			m_angle += static_cast<float>(timer.GetElapsedSeconds()) * m_radiansPerSecond;
+			//m_angle += static_cast<float>(timer.GetElapsedSeconds()) * m_radiansPerSecond;
 
 			Rotate(.01);
 			////const XMFLOAT4X4 thisMatrix = m_constantBufferData.view
@@ -377,7 +379,7 @@ void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
 			XMVECTOR atVec = at;
 			XMVECTOR eyeVec = eye;
 
-			XMVECTOR rotatedVector = XMVector3TransformCoord(atVec - eyeVec, XMMatrixRotationRollPitchYaw(m_angle, 0.0f, 0.0f));
+			XMVECTOR rotatedVector = XMVector3TransformCoord(atVec - eyeVec, XMMatrixRotationRollPitchYaw(m_cameraPitch, m_cameraYaw, 0.0f));
 			
 			XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(
 				XMMatrixLookAtRH(eye, eyeVec + rotatedVector, up)));
@@ -406,7 +408,7 @@ void Sample3DSceneRenderer::SaveState()
 		state->Remove(TrackingKey);
 	}
 
-	state->Insert(AngleKey, PropertyValue::CreateSingle(m_angle));
+	//state->Insert(AngleKey, PropertyValue::CreateSingle(m_angle));
 	state->Insert(TrackingKey, PropertyValue::CreateBoolean(m_tracking));
 }
 
@@ -416,7 +418,7 @@ void Sample3DSceneRenderer::LoadState()
 	auto state = ApplicationData::Current->LocalSettings->Values;
 	if (state->HasKey(AngleKey))
 	{
-		m_angle = safe_cast<IPropertyValue^>(state->Lookup(AngleKey))->GetSingle();
+		//m_angle = safe_cast<IPropertyValue^>(state->Lookup(AngleKey))->GetSingle();
 		state->Remove(AngleKey);
 	}
 	if (state->HasKey(TrackingKey))
@@ -517,7 +519,30 @@ bool Sample3DSceneRenderer::Render()
 
 void Sample3DSceneRenderer::KeyEvent(Windows::UI::Core::KeyEventArgs^ args)
 {
-	m_angle += .2;
+	switch (args->VirtualKey)
+	{
+		case Windows::System::VirtualKey::Up:
+		{
+			m_cameraPitch += .03f;
+			break;
+		}
+		case Windows::System::VirtualKey::Down:
+		{
+			m_cameraPitch -= .03f;
+			break;
+		}
+		case Windows::System::VirtualKey::Left:
+		{
+			m_cameraYaw += 0.03f;
+			break;
+		}
+		case Windows::System::VirtualKey::Right:
+		{
+			m_cameraYaw -= 0.03f;
+			break;
+		}
+		
+	}
 }
 
 

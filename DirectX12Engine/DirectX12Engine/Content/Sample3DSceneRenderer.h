@@ -52,10 +52,13 @@ namespace DirectX12Engine
 		D3D12_VERTEX_BUFFER_VIEW							m_vertexBufferView;
 		D3D12_INDEX_BUFFER_VIEW								m_indexBufferView;
 
+		// Camera variables
+		float m_cameraPitch;
+		float m_cameraYaw;
+
 		// Variables used with the rendering loop.
 		bool	m_loadingComplete;
 		float	m_radiansPerSecond;
-		float	m_angle;
 		bool	m_tracking;
 	};
 }
