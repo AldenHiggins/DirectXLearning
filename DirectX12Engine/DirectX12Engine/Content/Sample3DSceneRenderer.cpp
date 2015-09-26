@@ -37,6 +37,7 @@ Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceRes
 
 	m_cameraPitch = 0;
 	m_cameraYaw = 0;
+	boxHeight = 0;
 
 	CreateDeviceDependentResources();
 	CreateWindowSizeDependentResources();
@@ -134,6 +135,12 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 			{ XMFLOAT3(0.5f, -0.5f,  0.5f), XMFLOAT3(1.0f, 0.0f, 1.0f) },
 			{ XMFLOAT3(0.5f,  0.5f, -0.5f), XMFLOAT3(1.0f, 1.0f, 0.0f) },
 			{ XMFLOAT3(0.5f,  0.5f,  0.5f), XMFLOAT3(1.0f, 1.0f, 1.0f) },
+
+
+			{ XMFLOAT3(-3.0f, -0.5f, -3.0f), XMFLOAT3(1.0f, 1.0f, 1.0f) },
+			{ XMFLOAT3(-3.0f, -0.5f,  3.0f), XMFLOAT3(1.0f, 1.0f, 1.0f) },
+			{ XMFLOAT3(3.0f,  -0.5f, 3.0f), XMFLOAT3(1.0f, 1.0f, 1.0f) },
+			{ XMFLOAT3(3.0f,  -0.5f,  -3.0f), XMFLOAT3(1.0f, 1.0f, 1.0f) },
 		};
 
 		const UINT vertexBufferSize = sizeof(cubeVertices);
@@ -200,6 +207,10 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 
 			1, 3, 7, // +z
 			1, 7, 5,
+
+			// Floor indices
+			11, 9, 8,
+			10, 9, 11,
 		};
 
 		const UINT indexBufferSize = sizeof(cubeIndices);
@@ -366,29 +377,21 @@ void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
 			// Rotate the cube a small amount.
 			//m_angle += static_cast<float>(timer.GetElapsedSeconds()) * m_radiansPerSecond;
 
+
+
 			Rotate(.01);
-			////const XMFLOAT4X4 thisMatrix = m_constantBufferData.view
-			//XMMATRIX matrix = XMLoadFloat4x4(&m_constantBufferData.view);
-			//XMMATRIX multiplied = XMMatrixMultiply(XMMatrixRotationY(.01), XMMatrixTranspose(matrix));
-
-			////XMFLOAT4X4 floatIn;
-			////XMStoreFloat4x4(&floatIn, multiplied);
-
-			//XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(multiplied));
 
 			XMVECTOR atVec = at;
 			XMVECTOR eyeVec = eye;
 
+			// Generate a new vector to determine where the camera should be looking based on user input
 			XMVECTOR rotatedVector = XMVector3TransformCoord(atVec - eyeVec, XMMatrixRotationRollPitchYaw(m_cameraPitch, m_cameraYaw, 0.0f));
 
-			// Translate the eye vector as needed
-
-			
 			XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(
 				XMMatrixLookAtRH(eye, eyeVec + rotatedVector, up)));
 
-			/*XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixMultiply(XMMatrixRotationRollPitchYaw(0.0f, m_angle, 0.0f), 
-				XMMatrixTranspose(XMLoadFloat4x4(&m_constantBufferData.view))));*/
+			XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixTranspose(XMMatrixTranslation(0.0f, boxHeight, 0.0f)));
+
 		}
 
 		// Update the constant buffer resource.
@@ -501,7 +504,12 @@ bool Sample3DSceneRenderer::Render()
 		m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
 		m_commandList->IASetIndexBuffer(&m_indexBufferView);
+
+		m_commandList->DrawIndexedInstanced(6, 1, 36, 0, 0);
+
 		m_commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
+
+		
 
 		// Indicate that the render target will now be used to present when the command list is done executing.
 		CD3DX12_RESOURCE_BARRIER presentResourceBarrier =
@@ -581,6 +589,13 @@ void Sample3DSceneRenderer::KeyEvent(Windows::UI::Core::KeyEventArgs^ args)
 		{
 			eye.f[1] -= .1;
 			at.f[1] -= .1;
+			break;
+		}
+
+		// Controls for manipulating the box
+		case Windows::System::VirtualKey::P:
+		{
+			boxHeight += .1;
 			break;
 		}
 	}

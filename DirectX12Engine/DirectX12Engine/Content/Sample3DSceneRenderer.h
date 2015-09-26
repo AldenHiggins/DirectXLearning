@@ -56,6 +56,9 @@ namespace DirectX12Engine
 		float m_cameraPitch;
 		float m_cameraYaw;
 
+		// Position variables for the box
+		float boxHeight;
+
 		// Variables used with the rendering loop.
 		bool	m_loadingComplete;
 		float	m_radiansPerSecond;
