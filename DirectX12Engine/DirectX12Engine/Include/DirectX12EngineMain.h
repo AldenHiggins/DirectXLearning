@@ -19,6 +19,8 @@ namespace DirectX12Engine
 		void OnSuspending();
 		void OnResuming();
 		void OnDeviceRemoved();
+		void KeyEvent(Windows::UI::Core::KeyEventArgs^ args);
+
 
 	private:
 		// TODO: Replace with your own content renderers.

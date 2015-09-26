@@ -1,6 +1,5 @@
 ﻿#include "pch.h"
 #include "App.h"
-
 #include <ppltasks.h>
 
 using namespace DirectX12Engine;
@@ -60,6 +59,9 @@ void App::SetWindow(CoreWindow^ window)
 
 	window->VisibilityChanged +=
 		ref new TypedEventHandler<CoreWindow^, VisibilityChangedEventArgs^>(this, &App::OnVisibilityChanged);
+
+	window->KeyDown +=
+		ref new TypedEventHandler<CoreWindow^, KeyEventArgs^>(this, &App::OnButtonPress);
 
 	window->Closed += 
 		ref new TypedEventHandler<CoreWindow^, CoreWindowEventArgs^>(this, &App::OnWindowClosed);
@@ -165,6 +167,11 @@ void App::OnWindowSizeChanged(CoreWindow^ sender, WindowSizeChangedEventArgs^ ar
 {
 	GetDeviceResources()->SetLogicalSize(Size(sender->Bounds.Width, sender->Bounds.Height));
 	m_main->OnWindowSizeChanged();
+}
+
+void App::OnButtonPress(Windows::UI::Core::CoreWindow^ sender, KeyEventArgs^ args)
+{
+	m_main->KeyEvent(args);
 }
 
 void App::OnVisibilityChanged(CoreWindow^ sender, VisibilityChangedEventArgs^ args)

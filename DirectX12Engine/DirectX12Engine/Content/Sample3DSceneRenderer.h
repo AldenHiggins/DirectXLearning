@@ -22,6 +22,7 @@ namespace DirectX12Engine
 		void TrackingUpdate(float positionX);
 		void StopTracking();
 		bool IsTracking() { return m_tracking; }
+		void KeyEvent(Windows::UI::Core::KeyEventArgs^ args);
 
 	private:
 		void LoadState();

@@ -377,7 +377,7 @@ void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
 			XMVECTOR atVec = at;
 			XMVECTOR eyeVec = eye;
 
-			XMVECTOR rotatedVector = XMVector3TransformCoord(atVec - eyeVec, XMMatrixRotationRollPitchYaw(0.0f, m_angle, 0.0f));
+			XMVECTOR rotatedVector = XMVector3TransformCoord(atVec - eyeVec, XMMatrixRotationRollPitchYaw(m_angle, 0.0f, 0.0f));
 			
 			XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(
 				XMMatrixLookAtRH(eye, eyeVec + rotatedVector, up)));
@@ -513,3 +513,11 @@ bool Sample3DSceneRenderer::Render()
 
 	return true;
 }
+
+
+void Sample3DSceneRenderer::KeyEvent(Windows::UI::Core::KeyEventArgs^ args)
+{
+	m_angle += .2;
+}
+
+

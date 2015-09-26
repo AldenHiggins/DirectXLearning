@@ -27,6 +27,7 @@ void DirectX12EngineMain::CreateRenderers(const std::shared_ptr<DX::DeviceResour
 	m_sceneRenderer = std::unique_ptr<Sample3DSceneRenderer>(new Sample3DSceneRenderer(deviceResources));
 
 	OnWindowSizeChanged();
+
 }
 
 // Updates the application state once per frame.
@@ -89,4 +90,9 @@ void DirectX12EngineMain::OnDeviceRemoved()
 	// and its resources which are no longer valid.
 	m_sceneRenderer->SaveState();
 	m_sceneRenderer = nullptr;
+}
+
+void DirectX12EngineMain::KeyEvent(Windows::UI::Core::KeyEventArgs^ args)
+{
+	m_sceneRenderer->KeyEvent(args);
 }
