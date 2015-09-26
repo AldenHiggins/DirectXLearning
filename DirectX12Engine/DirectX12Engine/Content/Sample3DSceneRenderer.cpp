@@ -380,6 +380,9 @@ void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
 			XMVECTOR eyeVec = eye;
 
 			XMVECTOR rotatedVector = XMVector3TransformCoord(atVec - eyeVec, XMMatrixRotationRollPitchYaw(m_cameraPitch, m_cameraYaw, 0.0f));
+
+			// Translate the eye vector as needed
+
 			
 			XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(
 				XMMatrixLookAtRH(eye, eyeVec + rotatedVector, up)));
@@ -521,6 +524,7 @@ void Sample3DSceneRenderer::KeyEvent(Windows::UI::Core::KeyEventArgs^ args)
 {
 	switch (args->VirtualKey)
 	{
+		// Control the camera's angle
 		case Windows::System::VirtualKey::Up:
 		{
 			m_cameraPitch += .03f;
@@ -541,7 +545,44 @@ void Sample3DSceneRenderer::KeyEvent(Windows::UI::Core::KeyEventArgs^ args)
 			m_cameraYaw -= 0.03f;
 			break;
 		}
-		
+
+		// Control the camera's position
+		case Windows::System::VirtualKey::W:
+		{
+			eye.f[2] -= .1;
+			at.f[2] -= .1;
+			break;
+		}
+		case Windows::System::VirtualKey::S:
+		{
+			eye.f[2] += .1;
+			at.f[2] += .1;
+			break;
+		}
+		case Windows::System::VirtualKey::A:
+		{
+			eye.f[0] -= .1;
+			at.f[0] -= .1;
+			break;
+		}
+		case Windows::System::VirtualKey::D:
+		{
+			eye.f[0] += .1;
+			at.f[0] += .1;
+			break;
+		}
+		case Windows::System::VirtualKey::Q:
+		{
+			eye.f[1] += .1;
+			at.f[1] += .1;
+			break;
+		}
+		case Windows::System::VirtualKey::E:
+		{
+			eye.f[1] -= .1;
+			at.f[1] -= .1;
+			break;
+		}
 	}
 }
 
