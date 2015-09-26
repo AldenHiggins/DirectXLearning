@@ -17,6 +17,13 @@ using namespace Windows::Storage;
 Platform::String^ AngleKey = "Angle";
 Platform::String^ TrackingKey = "Tracking";
 
+// Camera variables
+DirectX::XMVECTORF32 eye;
+DirectX::XMVECTORF32 at;
+DirectX::XMVECTORF32 up;
+
+DirectX::XMFLOAT3 rotatedVectorPrint;
+
 // Loads vertex and pixel shaders from files and instantiates the cube geometry.
 Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) :
 	m_loadingComplete(false),
@@ -340,9 +347,9 @@ void Sample3DSceneRenderer::CreateWindowSizeDependentResources()
 		);
 
 	// Eye is at (0,0.7,1.5), looking at point (0,-0.1,0) with the up-vector along the y-axis.
-	static const XMVECTORF32 eye = { 0.0f, 0.7f, 1.5f, 0.0f };
-	static const XMVECTORF32 at = { 0.0f, -0.1f, 0.0f, 0.0f };
-	static const XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
+	eye = { 0.0f, 0.7f, 1.5f, 0.0f };
+	at = { 0.0f, -0.1f, 0.0f, 0.0f };
+	up = { 0.0f, 1.0f, 0.0f, 0.0f };
 
 	XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(XMMatrixLookAtRH(eye, at, up)));
 }
@@ -357,7 +364,28 @@ void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
 			// Rotate the cube a small amount.
 			m_angle += static_cast<float>(timer.GetElapsedSeconds()) * m_radiansPerSecond;
 
-			Rotate(m_angle);
+			Rotate(.01);
+			////const XMFLOAT4X4 thisMatrix = m_constantBufferData.view
+			//XMMATRIX matrix = XMLoadFloat4x4(&m_constantBufferData.view);
+			//XMMATRIX multiplied = XMMatrixMultiply(XMMatrixRotationY(.01), XMMatrixTranspose(matrix));
+
+			////XMFLOAT4X4 floatIn;
+			////XMStoreFloat4x4(&floatIn, multiplied);
+
+			//XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(multiplied));
+
+			XMVECTOR rotatedVector = XMVector3TransformCoord(at, XMMatrixRotationRollPitchYaw(0.0f, 0.0f, m_angle));
+
+			
+			XMStoreFloat3(&rotatedVectorPrint, rotatedVector);
+
+			XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(
+				XMMatrixLookAtRH(eye, rotatedVector, up)));
+
+			rotatedVectorPrint.x = rotatedVectorPrint.x;
+			XMVECTORF32 newFloatVector = { rotatedVectorPrint.x, rotatedVectorPrint.y, rotatedVectorPrint.z };
+
+			newFloatVector = newFloatVector;
 		}
 
 		// Update the constant buffer resource.
