@@ -348,7 +348,7 @@ void Sample3DSceneRenderer::CreateWindowSizeDependentResources()
 
 	// Eye is at (0,0.7,1.5), looking at point (0,-0.1,0) with the up-vector along the y-axis.
 	eye = { 0.0f, 0.7f, 1.5f, 0.0f };
-	at = { 0.0f, -0.1f, 0.0f, 0.0f };
+	at = { 0.0f, 0.0f, 0.0f, 0.0f };
 	up = { 0.0f, 1.0f, 0.0f, 0.0f };
 
 	XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(XMMatrixLookAtRH(eye, at, up)));
@@ -374,18 +374,16 @@ void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
 
 			//XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(multiplied));
 
-			XMVECTOR rotatedVector = XMVector3TransformCoord(at, XMMatrixRotationRollPitchYaw(0.0f, 0.0f, m_angle));
+			XMVECTOR atVec = at;
+			XMVECTOR eyeVec = eye;
 
+			XMVECTOR rotatedVector = XMVector3TransformCoord(atVec - eyeVec, XMMatrixRotationRollPitchYaw(0.0f, m_angle, 0.0f));
 			
-			XMStoreFloat3(&rotatedVectorPrint, rotatedVector);
-
 			XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(
-				XMMatrixLookAtRH(eye, rotatedVector, up)));
+				XMMatrixLookAtRH(eye, eyeVec + rotatedVector, up)));
 
-			rotatedVectorPrint.x = rotatedVectorPrint.x;
-			XMVECTORF32 newFloatVector = { rotatedVectorPrint.x, rotatedVectorPrint.y, rotatedVectorPrint.z };
-
-			newFloatVector = newFloatVector;
+			/*XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixMultiply(XMMatrixRotationRollPitchYaw(0.0f, m_angle, 0.0f), 
+				XMMatrixTranspose(XMLoadFloat4x4(&m_constantBufferData.view))));*/
 		}
 
 		// Update the constant buffer resource.
