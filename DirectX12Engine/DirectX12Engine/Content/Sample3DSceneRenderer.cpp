@@ -136,11 +136,11 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 			{ XMFLOAT3(0.5f,  0.5f, -0.5f), XMFLOAT3(1.0f, 1.0f, 0.0f) },
 			{ XMFLOAT3(0.5f,  0.5f,  0.5f), XMFLOAT3(1.0f, 1.0f, 1.0f) },
 
-
-			{ XMFLOAT3(-3.0f, -0.5f, -3.0f), XMFLOAT3(1.0f, 1.0f, 1.0f) },
-			{ XMFLOAT3(-3.0f, -0.5f,  3.0f), XMFLOAT3(1.0f, 1.0f, 1.0f) },
-			{ XMFLOAT3(3.0f,  -0.5f, 3.0f), XMFLOAT3(1.0f, 1.0f, 1.0f) },
-			{ XMFLOAT3(3.0f,  -0.5f,  -3.0f), XMFLOAT3(1.0f, 1.0f, 1.0f) },
+			// Floor vertices
+			{ XMFLOAT3(-3.0f, 0.0f, -3.0f), XMFLOAT3(0.8f, 0.8f, 0.8f) },
+			{ XMFLOAT3(-3.0f, 0.0f,  3.0f), XMFLOAT3(0.8f, 0.8f, 0.8f) },
+			{ XMFLOAT3(3.0f,  0.0f, 3.0f), XMFLOAT3(0.8f, 0.8f, 0.8f) },
+			{ XMFLOAT3(3.0f,  0.0f,  -3.0f), XMFLOAT3(0.8f, 0.8f, 0.8f) },
 		};
 
 		const UINT vertexBufferSize = sizeof(cubeVertices);
@@ -390,7 +390,7 @@ void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
 			XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(
 				XMMatrixLookAtRH(eye, eyeVec + rotatedVector, up)));
 
-			XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixTranspose(XMMatrixTranslation(0.0f, boxHeight, 0.0f)));
+			//XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixTranspose(XMMatrixTranslation(0.0f, boxHeight, 0.0f)));
 
 		}
 
@@ -438,7 +438,7 @@ void Sample3DSceneRenderer::LoadState()
 void Sample3DSceneRenderer::Rotate(float radians)
 {
 	// Prepare to pass the updated model matrix to the shader.
-	XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixTranspose(XMMatrixRotationY(radians)));
+	XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixTranspose(XMMatrixRotationY(radians) * XMMatrixTranslation(0.0f, 0.5f, 0.0f)));
 }
 
 void Sample3DSceneRenderer::StartTracking()
@@ -507,9 +507,9 @@ bool Sample3DSceneRenderer::Render()
 
 		m_commandList->DrawIndexedInstanced(6, 1, 36, 0, 0);
 
+		// Switch the model matrix to draw the ground in the right spot
+		XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixIdentity());
 		m_commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
-
-		
 
 		// Indicate that the render target will now be used to present when the command list is done executing.
 		CD3DX12_RESOURCE_BARRIER presentResourceBarrier =
