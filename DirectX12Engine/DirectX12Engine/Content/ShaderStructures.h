@@ -16,4 +16,11 @@ namespace DirectX12Engine
 		DirectX::XMFLOAT3 pos;
 		DirectX::XMFLOAT3 color;
 	};
+
+	// Send vertex data along with texture coordinates to the vertex shader
+	struct VertexTextureCoordinate
+	{
+		DirectX::XMFLOAT3 pos;
+		DirectX::XMFLOAT2 uv;
+	};
 }

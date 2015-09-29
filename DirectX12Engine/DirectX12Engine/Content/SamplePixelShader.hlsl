@@ -8,7 +8,7 @@ struct PixelShaderInput
 // A pass-through function for the (interpolated) color data.
 float4 main(PixelShaderInput input) : SV_TARGET
 {
-	float3 filter = float3(0.45f, 0.67f, 0.85f);
+	float3 filter = float3(0.45f, input.uv[0], 0.85f);
 
 
 

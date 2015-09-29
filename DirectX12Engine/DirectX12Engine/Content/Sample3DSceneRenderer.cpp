@@ -140,22 +140,22 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		DX::ThrowIfFailed(d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_deviceResources->GetCommandAllocator(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
 
 		// Cube vertices. Each vertex has a position and a color.
-		VertexPositionColor cubeVertices[] =
+		VertexTextureCoordinate cubeVertices[] =
 		{
-			{ XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT3(0.0f, 0.0f, 0.0f) },
-			{ XMFLOAT3(-0.5f, -0.5f,  0.5f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
-			{ XMFLOAT3(-0.5f,  0.5f, -0.5f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
-			{ XMFLOAT3(-0.5f,  0.5f,  0.5f), XMFLOAT3(0.0f, 1.0f, 1.0f) },
-			{ XMFLOAT3(0.5f, -0.5f, -0.5f), XMFLOAT3(1.0f, 0.0f, 0.0f) },
-			{ XMFLOAT3(0.5f, -0.5f,  0.5f), XMFLOAT3(1.0f, 0.0f, 1.0f) },
-			{ XMFLOAT3(0.5f,  0.5f, -0.5f), XMFLOAT3(1.0f, 1.0f, 0.0f) },
-			{ XMFLOAT3(0.5f,  0.5f,  0.5f), XMFLOAT3(1.0f, 1.0f, 1.0f) },
+			{ XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT2(0.0f, 0.0f) },
+			{ XMFLOAT3(-0.5f, -0.5f,  0.5f), XMFLOAT2(0.0f, 0.0f) },
+			{ XMFLOAT3(-0.5f,  0.5f, -0.5f), XMFLOAT2(0.0f, 1.0f) },
+			{ XMFLOAT3(-0.5f,  0.5f,  0.5f), XMFLOAT2(0.0f, 1.0f) },
+			{ XMFLOAT3(0.5f, -0.5f, -0.5f), XMFLOAT2(1.0f, 0.0f) },
+			{ XMFLOAT3(0.5f, -0.5f,  0.5f), XMFLOAT2(1.0f, 0.0f) },
+			{ XMFLOAT3(0.5f,  0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f) },
+			{ XMFLOAT3(0.5f,  0.5f,  0.5f), XMFLOAT2(1.0f, 1.0f) },
 
 			// Floor vertices
-			{ XMFLOAT3(-3.0f, 0.0f, -3.0f), XMFLOAT3(0.8f, 0.8f, 0.8f) },
-			{ XMFLOAT3(-3.0f, 0.0f,  3.0f), XMFLOAT3(0.8f, 0.8f, 0.8f) },
-			{ XMFLOAT3(3.0f,  0.0f, 3.0f), XMFLOAT3(0.8f, 0.8f, 0.8f) },
-			{ XMFLOAT3(3.0f,  0.0f,  -3.0f), XMFLOAT3(0.8f, 0.8f, 0.8f) },
+			{ XMFLOAT3(-3.0f, 0.0f, -3.0f), XMFLOAT2(0.8f, 0.8f) },
+			{ XMFLOAT3(-3.0f, 0.0f,  3.0f), XMFLOAT2(0.8f, 0.8f) },
+			{ XMFLOAT3(3.0f,  0.0f, 3.0f), XMFLOAT2(0.8f, 0.8f) },
+			{ XMFLOAT3(3.0f,  0.0f,  -3.0f), XMFLOAT2(0.8f, 0.8f) },
 		};
 
 		const UINT vertexBufferSize = sizeof(cubeVertices);
@@ -319,7 +319,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 
 		// Create vertex/index buffer views.
 		m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-		m_vertexBufferView.StrideInBytes = sizeof(VertexPositionColor);
+		m_vertexBufferView.StrideInBytes = sizeof(VertexTextureCoordinate);
 		m_vertexBufferView.SizeInBytes = sizeof(cubeVertices);
 
 		m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
