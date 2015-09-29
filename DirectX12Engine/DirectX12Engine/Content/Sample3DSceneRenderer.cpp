@@ -278,6 +278,13 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 			DX::ThrowIfFailed(d3dDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_cbvHeap)));
 
 			m_cbvHeap->SetName(L"Constant Buffer View Descriptor Heap");
+
+			// Describe and create a shader resource view (SRV) heap for the texture.
+			D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+			srvHeapDesc.NumDescriptors = 1;
+			srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+			srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+			DX::ThrowIfFailed(d3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_srvHeap)));
 		}
 
 		CD3DX12_RESOURCE_DESC constantBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(DX::c_frameCount * c_alignedConstantBufferSize);
@@ -326,9 +333,72 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		m_indexBufferView.SizeInBytes = sizeof(cubeIndices);
 		m_indexBufferView.Format = DXGI_FORMAT_R16_UINT;
 
+		// Create an upload heap to load the texture onto the GPU. ComPtr's are CPU objects
+		// but this heap needs to stay in scope until the GPU work is complete. We will
+		// synchronize with the GPU at the end of this method before the ComPtr is destroyed.
+		ComPtr<ID3D12Resource> textureUploadHeap;
+
+		// Create the texture.
+		{
+			// Describe and create a Texture2D.
+			D3D12_RESOURCE_DESC textureDesc = {};
+			textureDesc.MipLevels = 1;
+			textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			textureDesc.Width = TextureWidth;
+			textureDesc.Height = TextureHeight;
+			textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+			textureDesc.DepthOrArraySize = 1;
+			textureDesc.SampleDesc.Count = 1;
+			textureDesc.SampleDesc.Quality = 0;
+			textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+
+			DX::ThrowIfFailed(d3dDevice->CreateCommittedResource(
+				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+				D3D12_HEAP_FLAG_NONE,
+				&textureDesc,
+				D3D12_RESOURCE_STATE_COPY_DEST,
+				nullptr,
+				IID_PPV_ARGS(&m_texture)));
+
+			const UINT64 uploadBufferSize = GetRequiredIntermediateSize(m_texture.Get(), 0, 1);
+
+			// Create the GPU upload buffer.
+			DX::ThrowIfFailed(d3dDevice->CreateCommittedResource(
+				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+				D3D12_HEAP_FLAG_NONE,
+				&CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize),
+				D3D12_RESOURCE_STATE_GENERIC_READ,
+				nullptr,
+				IID_PPV_ARGS(&textureUploadHeap)));
+
+			// Copy data to the intermediate upload heap and then schedule a copy 
+			// from the upload heap to the Texture2D.
+			std::vector<UINT8> texture = GenerateTextureData();
+
+			D3D12_SUBRESOURCE_DATA textureData = {};
+			textureData.pData = &texture[0];
+			textureData.RowPitch = TextureWidth * TexturePixelSize;
+			textureData.SlicePitch = textureData.RowPitch * TextureHeight;
+
+			UpdateSubresources(m_commandList.Get(), m_texture.Get(), textureUploadHeap.Get(), 0, 0, 1, &textureData);
+			m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_texture.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+
+			// Describe and create a SRV for the texture.
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			srvDesc.Format = textureDesc.Format;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+			srvDesc.Texture2D.MipLevels = 1;
+			d3dDevice->CreateShaderResourceView(m_texture.Get(), &srvDesc, m_srvHeap->GetCPUDescriptorHandleForHeapStart());
+		}
+
+
 		// Wait for the command list to finish executing; the vertex/index buffers need to be uploaded to the GPU before the upload resources go out of scope.
 		m_deviceResources->WaitForGpu();
 	});
+
+
+	
 
 	createAssetsTask.then([this]() {
 		m_loadingComplete = true;
@@ -614,6 +684,41 @@ void Sample3DSceneRenderer::KeyEvent(Windows::UI::Core::KeyEventArgs^ args)
 			break;
 		}
 	}
+}
+
+// Generate a simple black and white checkerboard texture.
+std::vector<UINT8> Sample3DSceneRenderer::GenerateTextureData()
+{
+	const UINT rowPitch = TextureWidth * TexturePixelSize;
+	const UINT cellPitch = rowPitch >> 3;		// The width of a cell in the checkboard texture.
+	const UINT cellHeight = TextureWidth >> 3;	// The height of a cell in the checkerboard texture.
+	const UINT textureSize = rowPitch * TextureHeight;
+	std::vector<UINT8> data(textureSize);
+
+	for (UINT n = 0; n < textureSize; n += TexturePixelSize)
+	{
+		UINT x = n % rowPitch;
+		UINT y = n / rowPitch;
+		UINT i = x / cellPitch;
+		UINT j = y / cellHeight;
+
+		if (i % 2 == j % 2)
+		{
+			data[n] = 0x00;		// R
+			data[n + 1] = 0x00;	// G
+			data[n + 2] = 0x00;	// B
+			data[n + 3] = 0xff;	// A
+		}
+		else
+		{
+			data[n] = 0xff;		// R
+			data[n + 1] = 0xff;	// G
+			data[n + 2] = 0xff;	// B
+			data[n + 3] = 0xff;	// A
+		}
+	}
+
+	return data;
 }
 
 
