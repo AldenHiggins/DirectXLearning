@@ -41,6 +41,7 @@ namespace DirectX12Engine
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_cbvHeap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_srvHeap;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		m_samplerHeap;
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_vertexBuffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_indexBuffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_constantBuffer;

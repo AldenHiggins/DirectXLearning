@@ -56,18 +56,19 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 	// Create a root signature with a single constant buffer slot.
 	{
 		CD3DX12_DESCRIPTOR_RANGE range[2];
-		CD3DX12_ROOT_PARAMETER parameter;
+		CD3DX12_ROOT_PARAMETER parameter[2];
 		
 		range[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
 		range[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
-		parameter.InitAsDescriptorTable(2, range, D3D12_SHADER_VISIBILITY_VERTEX);
+		parameter[0].InitAsDescriptorTable(1, &range[0], D3D12_SHADER_VISIBILITY_VERTEX);
+		parameter[1].InitAsDescriptorTable(1, &range[1], D3D12_SHADER_VISIBILITY_PIXEL);
 
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
-			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | // Only the input assembler stage needs access to the constant buffer.
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT; // Only the input assembler stage needs access to the constant buffer.
+			//D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+			//D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
+			//D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+			//D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
 
 		D3D12_STATIC_SAMPLER_DESC sampler = {};
 		sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
@@ -85,7 +86,8 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 		CD3DX12_ROOT_SIGNATURE_DESC descRootSignature;
-		descRootSignature.Init(1, &parameter, 1, &sampler, rootSignatureFlags);
+		descRootSignature.Init(_countof(parameter), parameter, 1, &sampler, rootSignatureFlags);
+		//descRootSignature.Init(_countof(parameter), parameter, 0, nullptr);
 
 		ComPtr<ID3DBlob> pSignature;
 		ComPtr<ID3DBlob> pError;
@@ -272,7 +274,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		// Create a descriptor heap for the constant buffers.
 		{
 			D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-			heapDesc.NumDescriptors = DX::c_frameCount;
+			heapDesc.NumDescriptors = DX::c_frameCount + 1; // + 1 for the Shader resource view
 			heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 			// This flag indicates that this descriptor heap can be bound to the pipeline and that descriptors contained in it can be referenced by a root table.
 			heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
@@ -280,12 +282,19 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 
 			m_cbvHeap->SetName(L"Constant Buffer View Descriptor Heap");
 
-			// Describe and create a shader resource view (SRV) heap for the texture.
-			D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-			srvHeapDesc.NumDescriptors = 1;
-			srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-			srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-			DX::ThrowIfFailed(d3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_srvHeap)));
+			//// Describe and create a sampler descriptor heap.
+			//D3D12_DESCRIPTOR_HEAP_DESC samplerHeapDesc = {};
+			//samplerHeapDesc.NumDescriptors = 1;
+			//samplerHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+			//samplerHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+			//DX::ThrowIfFailed(d3dDevice->CreateDescriptorHeap(&samplerHeapDesc, IID_PPV_ARGS(&m_samplerHeap)));
+
+			//// Describe and create a shader resource view (SRV) heap for the texture.
+			//D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+			//srvHeapDesc.NumDescriptors = 1;
+			//srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+			//srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+			//DX::ThrowIfFailed(d3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_srvHeap)));
 		}
 
 		CD3DX12_RESOURCE_DESC constantBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(DX::c_frameCount * c_alignedConstantBufferSize);
@@ -384,13 +393,27 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 			UpdateSubresources(m_commandList.Get(), m_texture.Get(), textureUploadHeap.Get(), 0, 0, 1, &textureData);
 			m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_texture.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
 
+			//// Describe and create a sampler.
+			//D3D12_SAMPLER_DESC samplerDesc = {};
+			//samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+			//samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			//samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			//samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			//samplerDesc.MinLOD = 0;
+			//samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
+			//samplerDesc.MipLODBias = 0.0f;
+			//samplerDesc.MaxAnisotropy = 1;
+			//samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+			//d3dDevice->CreateSampler(&samplerDesc, m_samplerHeap->GetCPUDescriptorHandleForHeapStart());
+
 			// Describe and create a SRV for the texture.
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			srvDesc.Format = textureDesc.Format;
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 			srvDesc.Texture2D.MipLevels = 1;
-			d3dDevice->CreateShaderResourceView(m_texture.Get(), &srvDesc, m_srvHeap->GetCPUDescriptorHandleForHeapStart());
+			CD3DX12_CPU_DESCRIPTOR_HANDLE cbvSrvHandle(m_cbvHeap->GetCPUDescriptorHandleForHeapStart(), 3, m_cbvDescriptorSize);
+			d3dDevice->CreateShaderResourceView(m_texture.Get(), &srvDesc, cbvSrvHandle);
 		}
 
 		// Wait for the command list to finish executing; the vertex/index buffers need to be uploaded to the GPU before the upload resources go out of scope.
@@ -458,8 +481,6 @@ void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
 		{
 			// Rotate the cube a small amount.
 			//m_angle += static_cast<float>(timer.GetElapsedSeconds()) * m_radiansPerSecond;
-
-
 
 			Rotate(.01);
 
@@ -561,12 +582,15 @@ bool Sample3DSceneRenderer::Render()
 	{
 		// Set the graphics root signature and descriptor heaps to be used by this frame.
 		m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
-		ID3D12DescriptorHeap* ppHeaps[] = { m_cbvHeap.Get()};
+		ID3D12DescriptorHeap* ppHeaps[] = { m_cbvHeap.Get() };
 		m_commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 
 		// Bind the current frame's constant buffer to the pipeline.
 		CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(m_cbvHeap->GetGPUDescriptorHandleForHeapStart(), m_deviceResources->GetCurrentFrameIndex(), m_cbvDescriptorSize);
 		m_commandList->SetGraphicsRootDescriptorTable(0, gpuHandle);
+		CD3DX12_GPU_DESCRIPTOR_HANDLE srvGpuHandle(m_cbvHeap->GetGPUDescriptorHandleForHeapStart(), 3, m_cbvDescriptorSize);
+		m_commandList->SetGraphicsRootDescriptorTable(1, srvGpuHandle);
+		//m_commandList->SetGraphicsRootDescriptorTable(1, m_samplerHeap->GetGPUDescriptorHandleForHeapStart());
 
 		// Set the viewport and scissor rectangle.
 		D3D12_VIEWPORT viewport = m_deviceResources->GetScreenViewport();
