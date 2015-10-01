@@ -125,7 +125,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		state.SampleMask = UINT_MAX;
 		state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		state.NumRenderTargets = 1;
-		state.RTVFormats[0] = DXGI_FORMAT_B8G8R8A8_UNORM;
+		state.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		state.SampleDesc.Count = 1;
 
 		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateGraphicsPipelineState(&state, IID_PPV_ARGS(&m_pipelineState)));
@@ -155,10 +155,10 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 			{ XMFLOAT3(0.5f,  0.5f,  0.5f), XMFLOAT2(1.0f, 1.0f) },
 
 			// Floor vertices
-			{ XMFLOAT3(-3.0f, 0.0f, -3.0f), XMFLOAT2(0.8f, 0.8f) },
-			{ XMFLOAT3(-3.0f, 0.0f,  3.0f), XMFLOAT2(0.8f, 0.8f) },
-			{ XMFLOAT3(3.0f,  0.0f, 3.0f), XMFLOAT2(0.8f, 0.8f) },
-			{ XMFLOAT3(3.0f,  0.0f,  -3.0f), XMFLOAT2(0.8f, 0.8f) },
+			{ XMFLOAT3(-3.0f, 0.0f, -3.0f), XMFLOAT2(0.0f, 0.0f) },
+			{ XMFLOAT3(-3.0f, 0.0f,  3.0f), XMFLOAT2(0.0f, 1.0f) },
+			{ XMFLOAT3(3.0f,  0.0f, 3.0f), XMFLOAT2(1.0f, 1.0f) },
+			{ XMFLOAT3(3.0f,  0.0f,  -3.0f), XMFLOAT2(1.0f, 0.0f) },
 		};
 
 		const UINT vertexBufferSize = sizeof(cubeVertices);
@@ -329,20 +329,6 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		ZeroMemory(m_mappedConstantBuffer, DX::c_frameCount * c_alignedConstantBufferSize);
 		// We don't unmap this until the app closes. Keeping things mapped for the lifetime of the resource is okay.
 
-		// Close the command list and execute it to begin the vertex/index buffer copy into the GPU's default heap.
-		DX::ThrowIfFailed(m_commandList->Close());
-		ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
-		m_deviceResources->GetCommandQueue()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-
-		// Create vertex/index buffer views.
-		m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-		m_vertexBufferView.StrideInBytes = sizeof(VertexTextureCoordinate);
-		m_vertexBufferView.SizeInBytes = sizeof(cubeVertices);
-
-		m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
-		m_indexBufferView.SizeInBytes = sizeof(cubeIndices);
-		m_indexBufferView.Format = DXGI_FORMAT_R16_UINT;
-
 		// Create an upload heap to load the texture onto the GPU. ComPtr's are CPU objects
 		// but this heap needs to stay in scope until the GPU work is complete. We will
 		// synchronize with the GPU at the end of this method before the ComPtr is destroyed.
@@ -393,19 +379,6 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 			UpdateSubresources(m_commandList.Get(), m_texture.Get(), textureUploadHeap.Get(), 0, 0, 1, &textureData);
 			m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_texture.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
 
-			//// Describe and create a sampler.
-			//D3D12_SAMPLER_DESC samplerDesc = {};
-			//samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-			//samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			//samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			//samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			//samplerDesc.MinLOD = 0;
-			//samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
-			//samplerDesc.MipLODBias = 0.0f;
-			//samplerDesc.MaxAnisotropy = 1;
-			//samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-			//d3dDevice->CreateSampler(&samplerDesc, m_samplerHeap->GetCPUDescriptorHandleForHeapStart());
-
 			// Describe and create a SRV for the texture.
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -415,6 +388,20 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 			CD3DX12_CPU_DESCRIPTOR_HANDLE cbvSrvHandle(m_cbvHeap->GetCPUDescriptorHandleForHeapStart(), 3, m_cbvDescriptorSize);
 			d3dDevice->CreateShaderResourceView(m_texture.Get(), &srvDesc, cbvSrvHandle);
 		}
+
+		// Close the command list and execute it to begin the vertex/index buffer copy into the GPU's default heap.
+		DX::ThrowIfFailed(m_commandList->Close());
+		ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
+		m_deviceResources->GetCommandQueue()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+		// Create vertex/index buffer views.
+		m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
+		m_vertexBufferView.StrideInBytes = sizeof(VertexTextureCoordinate);
+		m_vertexBufferView.SizeInBytes = sizeof(cubeVertices);
+
+		m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
+		m_indexBufferView.SizeInBytes = sizeof(cubeIndices);
+		m_indexBufferView.Format = DXGI_FORMAT_R16_UINT;
 
 		// Wait for the command list to finish executing; the vertex/index buffers need to be uploaded to the GPU before the upload resources go out of scope.
 		m_deviceResources->WaitForGpu();
@@ -482,7 +469,7 @@ void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
 			// Rotate the cube a small amount.
 			//m_angle += static_cast<float>(timer.GetElapsedSeconds()) * m_radiansPerSecond;
 
-			Rotate(.01);
+			Rotate(.01f);
 
 			XMVECTOR atVec = at;
 			XMVECTOR eyeVec = eye;
@@ -663,45 +650,45 @@ void Sample3DSceneRenderer::KeyEvent(Windows::UI::Core::KeyEventArgs^ args)
 		// Control the camera's position
 		case Windows::System::VirtualKey::W:
 		{
-			eye.f[2] -= .1;
-			at.f[2] -= .1;
+			eye.f[2] -= .1f;
+			at.f[2] -= .1f;
 			break;
 		}
 		case Windows::System::VirtualKey::S:
 		{
-			eye.f[2] += .1;
-			at.f[2] += .1;
+			eye.f[2] += .1f;
+			at.f[2] += .1f;
 			break;
 		}
 		case Windows::System::VirtualKey::A:
 		{
-			eye.f[0] -= .1;
-			at.f[0] -= .1;
+			eye.f[0] -= .1f;
+			at.f[0] -= .1f;
 			break;
 		}
 		case Windows::System::VirtualKey::D:
 		{
-			eye.f[0] += .1;
-			at.f[0] += .1;
+			eye.f[0] += .1f;
+			at.f[0] += .1f;
 			break;
 		}
 		case Windows::System::VirtualKey::Q:
 		{
-			eye.f[1] += .1;
-			at.f[1] += .1;
+			eye.f[1] += .1f;
+			at.f[1] += .1f;
 			break;
 		}
 		case Windows::System::VirtualKey::E:
 		{
-			eye.f[1] -= .1;
-			at.f[1] -= .1;
+			eye.f[1] -= .1f;
+			at.f[1] -= .1f;
 			break;
 		}
 
 		// Controls for manipulating the box
 		case Windows::System::VirtualKey::P:
 		{
-			boxHeight += .1;
+			boxHeight += .1f;
 			break;
 		}
 	}
