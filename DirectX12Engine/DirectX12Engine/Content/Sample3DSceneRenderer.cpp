@@ -17,11 +17,6 @@ using namespace Windows::Storage;
 Platform::String^ AngleKey = "Angle";
 Platform::String^ TrackingKey = "Tracking";
 
-// Camera variables
-DirectX::XMVECTORF32 eye;
-DirectX::XMVECTORF32 at;
-DirectX::XMVECTORF32 up;
-
 // Loads vertex and pixel shaders from files and instantiates the cube geometry.
 Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) :
 	m_loadingComplete(false),
@@ -32,10 +27,6 @@ Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceRes
 {
 	LoadState();
 	ZeroMemory(&m_constantBufferData, sizeof(m_constantBufferData));
-
-	m_cameraPitch = 0;
-	m_cameraYaw = 0;
-	boxHeight = 0;
 
 	m_camera.Init({ 0, 2, 5 });
 	m_camera.SetMoveSpeed(5.0f);
@@ -398,7 +389,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 void Sample3DSceneRenderer::CreateWindowSizeDependentResources()
 {
 	Size outputSize = m_deviceResources->GetOutputSize();
-	float aspectRatio = outputSize.Width / outputSize.Height;
+	m_aspectRatio = outputSize.Width / outputSize.Height;
 	float fovAngleY = 70.0f * XM_PI / 180.0f;
 
 	D3D12_VIEWPORT viewport = m_deviceResources->GetScreenViewport();
@@ -406,7 +397,7 @@ void Sample3DSceneRenderer::CreateWindowSizeDependentResources()
 
 	// This is a simple example of change that can be made when the app is in
 	// portrait or snapped view.
-	if (aspectRatio < 1.0f)
+	if (m_aspectRatio < 1.0f)
 	{
 		fovAngleY *= 2.0f;
 	}
@@ -420,7 +411,7 @@ void Sample3DSceneRenderer::CreateWindowSizeDependentResources()
 	// This sample makes use of a right-handed coordinate system using row-major matrices.
 	XMMATRIX perspectiveMatrix = XMMatrixPerspectiveFovRH(
 		fovAngleY,
-		aspectRatio,
+		m_aspectRatio,
 		0.01f,
 		100.0f
 		);
@@ -432,13 +423,6 @@ void Sample3DSceneRenderer::CreateWindowSizeDependentResources()
 		&m_constantBufferData.projection,
 		XMMatrixTranspose(perspectiveMatrix * orientationMatrix)
 		);
-
-	// Eye is at (0,0.7,1.5), looking at point (0,-0.1,0) with the up-vector along the y-axis.
-	eye = { 0.0f, 0.7f, 1.5f, 0.0f };
-	at = { 0.0f, 0.0f, 0.0f, 0.0f };
-	up = { 0.0f, 1.0f, 0.0f, 0.0f };
-
-	XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(XMMatrixLookAtRH(eye, at, up)));
 }
 
 // Called once per frame, rotates the cube and calculates the model and view matrices.
@@ -452,24 +436,12 @@ void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
 			//m_angle += static_cast<float>(timer.GetElapsedSeconds()) * m_radiansPerSecond;
 
 			Rotate(.01f);
-
-			XMVECTOR atVec = at;
-			XMVECTOR eyeVec = eye;
-
-			//// Generate a new vector to determine where the camera should be looking based on user input
-			//XMVECTOR rotatedVector = XMVector3TransformCoord(atVec - eyeVec, XMMatrixRotationRollPitchYaw(m_cameraPitch, m_cameraYaw, 0.0f));
-
-			//XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(XMMatrixLookAtRH(eye, eyeVec + rotatedVector, up)));
 		}
 
+		// Update the camera and the view and projection matrices
 		m_camera.Update(static_cast<float>(timer.GetElapsedSeconds()));
-
-		//m_pCurrentFrameResource->UpdateConstantBuffers(m_camera.GetViewMatrix(), m_camera.GetProjectionMatrix(0.8f, m_aspectRatio));
-
 		XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(m_camera.GetViewMatrix()));
-		Size outputSize = m_deviceResources->GetOutputSize();
-		float aspectRatio = outputSize.Width / outputSize.Height;
-		XMStoreFloat4x4(&m_constantBufferData.projection, XMMatrixTranspose(m_camera.GetProjectionMatrix(0.8f, aspectRatio)));
+		XMStoreFloat4x4(&m_constantBufferData.projection, XMMatrixTranspose(m_camera.GetProjectionMatrix(0.8f, m_aspectRatio)));
 
 		// Update the constant buffer resource.
 		UINT8* destination = m_mappedConstantBuffer + (m_deviceResources->GetCurrentFrameIndex() * c_alignedConstantBufferSize);
