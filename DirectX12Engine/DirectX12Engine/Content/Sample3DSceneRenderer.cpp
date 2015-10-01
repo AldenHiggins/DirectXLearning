@@ -22,8 +22,6 @@ DirectX::XMVECTORF32 eye;
 DirectX::XMVECTORF32 at;
 DirectX::XMVECTORF32 up;
 
-DirectX::XMFLOAT3 rotatedVectorPrint;
-
 // Loads vertex and pixel shaders from files and instantiates the cube geometry.
 Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) :
 	m_loadingComplete(false),
@@ -38,6 +36,9 @@ Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceRes
 	m_cameraPitch = 0;
 	m_cameraYaw = 0;
 	boxHeight = 0;
+
+	m_camera.Init({ 0, 2, 5 });
+	m_camera.SetMoveSpeed(5.0f);
 
 	CreateDeviceDependentResources();
 	CreateWindowSizeDependentResources();
@@ -63,12 +64,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		parameter[0].InitAsDescriptorTable(1, &range[0], D3D12_SHADER_VISIBILITY_VERTEX);
 		parameter[1].InitAsDescriptorTable(1, &range[1], D3D12_SHADER_VISIBILITY_PIXEL);
 
-		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
-			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT; // Only the input assembler stage needs access to the constant buffer.
-			//D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-			//D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-			//D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-			//D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =	D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT; 
 
 		D3D12_STATIC_SAMPLER_DESC sampler = {};
 		sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
@@ -281,20 +277,6 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 			DX::ThrowIfFailed(d3dDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_cbvHeap)));
 
 			m_cbvHeap->SetName(L"Constant Buffer View Descriptor Heap");
-
-			//// Describe and create a sampler descriptor heap.
-			//D3D12_DESCRIPTOR_HEAP_DESC samplerHeapDesc = {};
-			//samplerHeapDesc.NumDescriptors = 1;
-			//samplerHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
-			//samplerHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-			//DX::ThrowIfFailed(d3dDevice->CreateDescriptorHeap(&samplerHeapDesc, IID_PPV_ARGS(&m_samplerHeap)));
-
-			//// Describe and create a shader resource view (SRV) heap for the texture.
-			//D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-			//srvHeapDesc.NumDescriptors = 1;
-			//srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-			//srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-			//DX::ThrowIfFailed(d3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_srvHeap)));
 		}
 
 		CD3DX12_RESOURCE_DESC constantBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(DX::c_frameCount * c_alignedConstantBufferSize);
@@ -474,15 +456,20 @@ void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
 			XMVECTOR atVec = at;
 			XMVECTOR eyeVec = eye;
 
-			// Generate a new vector to determine where the camera should be looking based on user input
-			XMVECTOR rotatedVector = XMVector3TransformCoord(atVec - eyeVec, XMMatrixRotationRollPitchYaw(m_cameraPitch, m_cameraYaw, 0.0f));
+			//// Generate a new vector to determine where the camera should be looking based on user input
+			//XMVECTOR rotatedVector = XMVector3TransformCoord(atVec - eyeVec, XMMatrixRotationRollPitchYaw(m_cameraPitch, m_cameraYaw, 0.0f));
 
-			XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(
-				XMMatrixLookAtRH(eye, eyeVec + rotatedVector, up)));
-
-			//XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixTranspose(XMMatrixTranslation(0.0f, boxHeight, 0.0f)));
-
+			//XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(XMMatrixLookAtRH(eye, eyeVec + rotatedVector, up)));
 		}
+
+		m_camera.Update(static_cast<float>(timer.GetElapsedSeconds()));
+
+		//m_pCurrentFrameResource->UpdateConstantBuffers(m_camera.GetViewMatrix(), m_camera.GetProjectionMatrix(0.8f, m_aspectRatio));
+
+		XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(m_camera.GetViewMatrix()));
+		Size outputSize = m_deviceResources->GetOutputSize();
+		float aspectRatio = outputSize.Width / outputSize.Height;
+		XMStoreFloat4x4(&m_constantBufferData.projection, XMMatrixTranspose(m_camera.GetProjectionMatrix(0.8f, aspectRatio)));
 
 		// Update the constant buffer resource.
 		UINT8* destination = m_mappedConstantBuffer + (m_deviceResources->GetCurrentFrameIndex() * c_alignedConstantBufferSize);
@@ -577,7 +564,6 @@ bool Sample3DSceneRenderer::Render()
 		m_commandList->SetGraphicsRootDescriptorTable(0, gpuHandle);
 		CD3DX12_GPU_DESCRIPTOR_HANDLE srvGpuHandle(m_cbvHeap->GetGPUDescriptorHandleForHeapStart(), 3, m_cbvDescriptorSize);
 		m_commandList->SetGraphicsRootDescriptorTable(1, srvGpuHandle);
-		//m_commandList->SetGraphicsRootDescriptorTable(1, m_samplerHeap->GetGPUDescriptorHandleForHeapStart());
 
 		// Set the viewport and scissor rectangle.
 		D3D12_VIEWPORT viewport = m_deviceResources->GetScreenViewport();
@@ -620,78 +606,14 @@ bool Sample3DSceneRenderer::Render()
 	return true;
 }
 
+void Sample3DSceneRenderer::KeyUpEvent(Windows::UI::Core::KeyEventArgs^ args)
+{
+	m_camera.OnKeyUp(args);
+}
 
 void Sample3DSceneRenderer::KeyEvent(Windows::UI::Core::KeyEventArgs^ args)
 {
-	switch (args->VirtualKey)
-	{
-		// Control the camera's angle
-		case Windows::System::VirtualKey::Up:
-		{
-			m_cameraPitch += .03f;
-			break;
-		}
-		case Windows::System::VirtualKey::Down:
-		{
-			m_cameraPitch -= .03f;
-			break;
-		}
-		case Windows::System::VirtualKey::Left:
-		{
-			m_cameraYaw += 0.03f;
-			break;
-		}
-		case Windows::System::VirtualKey::Right:
-		{
-			m_cameraYaw -= 0.03f;
-			break;
-		}
-
-		// Control the camera's position
-		case Windows::System::VirtualKey::W:
-		{
-			eye.f[2] -= .1f;
-			at.f[2] -= .1f;
-			break;
-		}
-		case Windows::System::VirtualKey::S:
-		{
-			eye.f[2] += .1f;
-			at.f[2] += .1f;
-			break;
-		}
-		case Windows::System::VirtualKey::A:
-		{
-			eye.f[0] -= .1f;
-			at.f[0] -= .1f;
-			break;
-		}
-		case Windows::System::VirtualKey::D:
-		{
-			eye.f[0] += .1f;
-			at.f[0] += .1f;
-			break;
-		}
-		case Windows::System::VirtualKey::Q:
-		{
-			eye.f[1] += .1f;
-			at.f[1] += .1f;
-			break;
-		}
-		case Windows::System::VirtualKey::E:
-		{
-			eye.f[1] -= .1f;
-			at.f[1] -= .1f;
-			break;
-		}
-
-		// Controls for manipulating the box
-		case Windows::System::VirtualKey::P:
-		{
-			boxHeight += .1f;
-			break;
-		}
-	}
+	m_camera.OnKeyDown(args);
 }
 
 // Generate a simple black and white checkerboard texture.

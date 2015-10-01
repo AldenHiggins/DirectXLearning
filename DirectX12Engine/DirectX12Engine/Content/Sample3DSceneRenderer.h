@@ -3,6 +3,7 @@
 #include "..\Common\DeviceResources.h"
 #include "ShaderStructures.h"
 #include "..\Common\StepTimer.h"
+#include "SimpleCamera.h"
 
 namespace DirectX12Engine
 {
@@ -23,6 +24,7 @@ namespace DirectX12Engine
 		void StopTracking();
 		bool IsTracking() { return m_tracking; }
 		void KeyEvent(Windows::UI::Core::KeyEventArgs^ args);
+		void KeyUpEvent(Windows::UI::Core::KeyEventArgs^ args);
 
 	private:
 		void LoadState();
@@ -56,6 +58,8 @@ namespace DirectX12Engine
 		D3D12_INDEX_BUFFER_VIEW								m_indexBufferView;
 
 		// Camera variables
+		SimpleCamera m_camera;
+
 		float m_cameraPitch;
 		float m_cameraYaw;
 

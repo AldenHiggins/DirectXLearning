@@ -63,6 +63,9 @@ void App::SetWindow(CoreWindow^ window)
 	window->KeyDown +=
 		ref new TypedEventHandler<CoreWindow^, KeyEventArgs^>(this, &App::OnButtonPress);
 
+	window->KeyUp +=
+		ref new TypedEventHandler<CoreWindow^, KeyEventArgs^>(this, &App::OnButtonRelease);
+
 	window->Closed += 
 		ref new TypedEventHandler<CoreWindow^, CoreWindowEventArgs^>(this, &App::OnWindowClosed);
 
@@ -172,6 +175,11 @@ void App::OnWindowSizeChanged(CoreWindow^ sender, WindowSizeChangedEventArgs^ ar
 void App::OnButtonPress(Windows::UI::Core::CoreWindow^ sender, KeyEventArgs^ args)
 {
 	m_main->KeyEvent(args);
+}
+
+void App::OnButtonRelease(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args)
+{
+	m_main->KeyUpEvent(args);
 }
 
 void App::OnVisibilityChanged(CoreWindow^ sender, VisibilityChangedEventArgs^ args)

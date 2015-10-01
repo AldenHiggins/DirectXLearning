@@ -96,3 +96,8 @@ void DirectX12EngineMain::KeyEvent(Windows::UI::Core::KeyEventArgs^ args)
 {
 	m_sceneRenderer->KeyEvent(args);
 }
+
+void DirectX12EngineMain::KeyUpEvent(Windows::UI::Core::KeyEventArgs^ args)
+{
+	m_sceneRenderer->KeyUpEvent(args);
+}

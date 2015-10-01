@@ -20,6 +20,7 @@ namespace DirectX12Engine
 		void OnResuming();
 		void OnDeviceRemoved();
 		void KeyEvent(Windows::UI::Core::KeyEventArgs^ args);
+		void KeyUpEvent(Windows::UI::Core::KeyEventArgs^ args);
 
 
 	private:
