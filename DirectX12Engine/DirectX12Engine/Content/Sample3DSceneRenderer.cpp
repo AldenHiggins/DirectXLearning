@@ -271,6 +271,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		}
 
 		CD3DX12_RESOURCE_DESC constantBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(DX::c_frameCount * c_alignedConstantBufferSize);
+
 		DX::ThrowIfFailed(d3dDevice->CreateCommittedResource(
 			&uploadHeapProperties,
 			D3D12_HEAP_FLAG_NONE,
@@ -435,7 +436,7 @@ void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
 			// Rotate the cube a small amount.
 			//m_angle += static_cast<float>(timer.GetElapsedSeconds()) * m_radiansPerSecond;
 
-			Rotate(.01f);
+			//Rotate(.01f);
 		}
 
 		// Update the camera and the view and projection matrices
@@ -556,10 +557,19 @@ bool Sample3DSceneRenderer::Render()
 		m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
 		m_commandList->IASetIndexBuffer(&m_indexBufferView);
 
+		// Switch the model matrix to draw the box in the right spot
+		XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixTranspose(XMMatrixTranslation(3.0f, 1.0f, 2.0f)));
+		// Update the constant buffer resource.
+		UINT8* destination = m_mappedConstantBuffer + (m_deviceResources->GetCurrentFrameIndex() * c_alignedConstantBufferSize);
+		memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
 		m_commandList->DrawIndexedInstanced(6, 1, 36, 0, 0);
 
+		
 		// Switch the model matrix to draw the ground in the right spot
 		XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixIdentity());
+		// Update the constant buffer resource.
+		destination = m_mappedConstantBuffer + (m_deviceResources->GetCurrentFrameIndex() * c_alignedConstantBufferSize);
+		memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
 		m_commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
 
 		// Indicate that the render target will now be used to present when the command list is done executing.
