@@ -47,13 +47,17 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 
 	// Create a root signature with a single constant buffer slot.
 	{
-		CD3DX12_DESCRIPTOR_RANGE range[2];
-		CD3DX12_ROOT_PARAMETER parameter[2];
+		CD3DX12_DESCRIPTOR_RANGE range[4];
+		CD3DX12_ROOT_PARAMETER parameter[4];
 		
 		range[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
-		range[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+		range[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
+		range[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
+		range[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 		parameter[0].InitAsDescriptorTable(1, &range[0], D3D12_SHADER_VISIBILITY_VERTEX);
-		parameter[1].InitAsDescriptorTable(1, &range[1], D3D12_SHADER_VISIBILITY_PIXEL);
+		parameter[1].InitAsDescriptorTable(1, &range[1], D3D12_SHADER_VISIBILITY_VERTEX);
+		parameter[2].InitAsDescriptorTable(1, &range[2], D3D12_SHADER_VISIBILITY_VERTEX);
+		parameter[3].InitAsDescriptorTable(1, &range[3], D3D12_SHADER_VISIBILITY_PIXEL);
 
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =	D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT; 
 
@@ -261,7 +265,9 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		// Create a descriptor heap for the constant buffers.
 		{
 			D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-			heapDesc.NumDescriptors = DX::c_frameCount + 1; // + 1 for the Shader resource view
+			heapDesc.NumDescriptors = DX::c_frameCount
+				+ 1 // +1 for the checkerboard texture
+				+ 2; // + 2 for the two model matrices
 			heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 			// This flag indicates that this descriptor heap can be bound to the pipeline and that descriptors contained in it can be referenced by a root table.
 			heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
@@ -302,6 +308,39 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		DX::ThrowIfFailed(m_constantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_mappedConstantBuffer)));
 		ZeroMemory(m_mappedConstantBuffer, DX::c_frameCount * c_alignedConstantBufferSize);
 		// We don't unmap this until the app closes. Keeping things mapped for the lifetime of the resource is okay.
+
+		// Generate the two constant buffer views that contain the model matrices for each of the objects
+		{
+			CD3DX12_RESOURCE_DESC modelBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(c_alignedModelConstantBufferSize);
+			
+			DX::ThrowIfFailed(d3dDevice->CreateCommittedResource(
+				&uploadHeapProperties,
+				D3D12_HEAP_FLAG_NONE,
+				&constantBufferDesc,
+				D3D12_RESOURCE_STATE_GENERIC_READ,
+				nullptr,
+				IID_PPV_ARGS(&m_constantBuffer)));
+
+			D3D12_GPU_VIRTUAL_ADDRESS modelBufferGpuAddress = m_constantBuffer->GetGPUVirtualAddress();
+			CD3DX12_CPU_DESCRIPTOR_HANDLE modelBufferCpuAddress(m_cbvHeap->GetCPUDescriptorHandleForHeapStart());
+
+			modelBufferCpuAddress.Offset(3 * m_cbvDescriptorSize);
+			modelBufferGpuAddress += (3 * c_alignedConstantBufferSize);
+
+			D3D12_CONSTANT_BUFFER_VIEW_DESC desc;
+			desc.BufferLocation = modelBufferGpuAddress;
+			desc.SizeInBytes = c_alignedModelConstantBufferSize;
+			d3dDevice->CreateConstantBufferView(&desc, modelBufferCpuAddress);
+
+			modelBufferCpuAddress.Offset(m_cbvDescriptorSize);
+			modelBufferGpuAddress += (c_alignedModelConstantBufferSize);
+
+			D3D12_CONSTANT_BUFFER_VIEW_DESC otherBufferDesc;
+			otherBufferDesc.BufferLocation = modelBufferGpuAddress;
+			otherBufferDesc.SizeInBytes = c_alignedModelConstantBufferSize;
+			d3dDevice->CreateConstantBufferView(&otherBufferDesc, modelBufferCpuAddress);
+		}
+
 
 		// Create an upload heap to load the texture onto the GPU. ComPtr's are CPU objects
 		// but this heap needs to stay in scope until the GPU work is complete. We will
@@ -359,7 +398,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 			srvDesc.Format = textureDesc.Format;
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 			srvDesc.Texture2D.MipLevels = 1;
-			CD3DX12_CPU_DESCRIPTOR_HANDLE cbvSrvHandle(m_cbvHeap->GetCPUDescriptorHandleForHeapStart(), 3, m_cbvDescriptorSize);
+			CD3DX12_CPU_DESCRIPTOR_HANDLE cbvSrvHandle(m_cbvHeap->GetCPUDescriptorHandleForHeapStart(), 5, m_cbvDescriptorSize);
 			d3dDevice->CreateShaderResourceView(m_texture.Get(), &srvDesc, cbvSrvHandle);
 		}
 
@@ -488,7 +527,7 @@ void Sample3DSceneRenderer::LoadState()
 void Sample3DSceneRenderer::Rotate(float radians)
 {
 	// Prepare to pass the updated model matrix to the shader.
-	XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixTranspose(XMMatrixRotationY(radians) * XMMatrixTranslation(0.0f, 0.5f, 0.0f)));
+	//XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixTranspose(XMMatrixRotationY(radians) * XMMatrixTranslation(0.0f, 0.5f, 0.0f)));
 }
 
 void Sample3DSceneRenderer::StartTracking()
@@ -535,8 +574,10 @@ bool Sample3DSceneRenderer::Render()
 		// Bind the current frame's constant buffer to the pipeline.
 		CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(m_cbvHeap->GetGPUDescriptorHandleForHeapStart(), m_deviceResources->GetCurrentFrameIndex(), m_cbvDescriptorSize);
 		m_commandList->SetGraphicsRootDescriptorTable(0, gpuHandle);
-		CD3DX12_GPU_DESCRIPTOR_HANDLE srvGpuHandle(m_cbvHeap->GetGPUDescriptorHandleForHeapStart(), 3, m_cbvDescriptorSize);
-		m_commandList->SetGraphicsRootDescriptorTable(1, srvGpuHandle);
+		CD3DX12_GPU_DESCRIPTOR_HANDLE modelCbvGpuHandle(m_cbvHeap->GetGPUDescriptorHandleForHeapStart(), 3, m_cbvDescriptorSize);
+		m_commandList->SetGraphicsRootDescriptorTable(1, modelCbvGpuHandle);
+		CD3DX12_GPU_DESCRIPTOR_HANDLE srvGpuHandle(m_cbvHeap->GetGPUDescriptorHandleForHeapStart(), 5, m_cbvDescriptorSize);
+		m_commandList->SetGraphicsRootDescriptorTable(2, srvGpuHandle);
 
 		// Set the viewport and scissor rectangle.
 		D3D12_VIEWPORT viewport = m_deviceResources->GetScreenViewport();
@@ -558,18 +599,19 @@ bool Sample3DSceneRenderer::Render()
 		m_commandList->IASetIndexBuffer(&m_indexBufferView);
 
 		// Switch the model matrix to draw the box in the right spot
-		XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixTranspose(XMMatrixTranslation(3.0f, 1.0f, 2.0f)));
+		//XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixTranspose(XMMatrixTranslation(3.0f, 1.0f, 2.0f)));
 		// Update the constant buffer resource.
-		UINT8* destination = m_mappedConstantBuffer + (m_deviceResources->GetCurrentFrameIndex() * c_alignedConstantBufferSize);
-		memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
+		UINT8* destination = m_mappedConstantBuffer + (3 * c_alignedConstantBufferSize);
+		ModelMatrixConstantBuffer *thisFrameBuffer = (ModelMatrixConstantBuffer *) destination;
+		XMStoreFloat4x4(&thisFrameBuffer->model, XMMatrixIdentity());
+		//memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
 		m_commandList->DrawIndexedInstanced(6, 1, 36, 0, 0);
 
-		
 		// Switch the model matrix to draw the ground in the right spot
-		XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixIdentity());
+		//XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixIdentity());
 		// Update the constant buffer resource.
-		destination = m_mappedConstantBuffer + (m_deviceResources->GetCurrentFrameIndex() * c_alignedConstantBufferSize);
-		memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
+		//XMStoreFloat4x4(&thisFrameBuffer->model, XMMatrixIdentity());
+		//memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
 		m_commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
 
 		// Indicate that the render target will now be used to present when the command list is done executing.
