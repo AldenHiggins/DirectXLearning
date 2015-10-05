@@ -604,7 +604,7 @@ bool Sample3DSceneRenderer::Render()
 		UINT8* destination = m_mappedConstantBuffer + (3 * c_alignedConstantBufferSize);
 		ModelMatrixConstantBuffer *thisFrameBuffer = (ModelMatrixConstantBuffer *) destination;
 		XMStoreFloat4x4(&thisFrameBuffer->model, XMMatrixIdentity());
-		//memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
+		memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
 		m_commandList->DrawIndexedInstanced(6, 1, 36, 0, 0);
 
 		// Switch the model matrix to draw the ground in the right spot
@@ -612,7 +612,7 @@ bool Sample3DSceneRenderer::Render()
 		// Update the constant buffer resource.
 		//XMStoreFloat4x4(&thisFrameBuffer->model, XMMatrixIdentity());
 		//memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
-		m_commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
+		//m_commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
 
 		// Indicate that the render target will now be used to present when the command list is done executing.
 		CD3DX12_RESOURCE_BARRIER presentResourceBarrier =
