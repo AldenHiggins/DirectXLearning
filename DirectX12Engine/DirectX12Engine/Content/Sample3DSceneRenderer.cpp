@@ -47,17 +47,13 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 
 	// Create a root signature with a single constant buffer slot.
 	{
-		CD3DX12_DESCRIPTOR_RANGE range[4];
-		CD3DX12_ROOT_PARAMETER parameter[4];
+		CD3DX12_DESCRIPTOR_RANGE range[2];
+		CD3DX12_ROOT_PARAMETER parameter[2];
 		
 		range[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
-		range[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
-		range[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
-		range[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+		range[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 		parameter[0].InitAsDescriptorTable(1, &range[0], D3D12_SHADER_VISIBILITY_VERTEX);
-		parameter[1].InitAsDescriptorTable(1, &range[1], D3D12_SHADER_VISIBILITY_VERTEX);
-		parameter[2].InitAsDescriptorTable(1, &range[2], D3D12_SHADER_VISIBILITY_VERTEX);
-		parameter[3].InitAsDescriptorTable(1, &range[3], D3D12_SHADER_VISIBILITY_PIXEL);
+		parameter[1].InitAsDescriptorTable(1, &range[1], D3D12_SHADER_VISIBILITY_PIXEL);
 
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =	D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT; 
 
@@ -576,8 +572,6 @@ bool Sample3DSceneRenderer::Render()
 		m_commandList->SetGraphicsRootDescriptorTable(0, gpuHandle);
 		CD3DX12_GPU_DESCRIPTOR_HANDLE modelCbvGpuHandle(m_cbvHeap->GetGPUDescriptorHandleForHeapStart(), 3, m_cbvDescriptorSize);
 		m_commandList->SetGraphicsRootDescriptorTable(1, modelCbvGpuHandle);
-		CD3DX12_GPU_DESCRIPTOR_HANDLE srvGpuHandle(m_cbvHeap->GetGPUDescriptorHandleForHeapStart(), 5, m_cbvDescriptorSize);
-		m_commandList->SetGraphicsRootDescriptorTable(2, srvGpuHandle);
 
 		// Set the viewport and scissor rectangle.
 		D3D12_VIEWPORT viewport = m_deviceResources->GetScreenViewport();
@@ -610,9 +604,11 @@ bool Sample3DSceneRenderer::Render()
 		// Switch the model matrix to draw the ground in the right spot
 		//XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixIdentity());
 		// Update the constant buffer resource.
-		//XMStoreFloat4x4(&thisFrameBuffer->model, XMMatrixIdentity());
-		//memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
-		//m_commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
+		destination = m_mappedConstantBuffer + (4 * c_alignedConstantBufferSize);
+		thisFrameBuffer = (ModelMatrixConstantBuffer *)destination;
+		XMStoreFloat4x4(&thisFrameBuffer->model, XMMatrixIdentity());
+		memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
+		m_commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
 
 		// Indicate that the render target will now be used to present when the command list is done executing.
 		CD3DX12_RESOURCE_BARRIER presentResourceBarrier =
