@@ -47,13 +47,16 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 
 	// Create a root signature with a single constant buffer slot.
 	{
-		CD3DX12_DESCRIPTOR_RANGE range[2];
-		CD3DX12_ROOT_PARAMETER parameter[2];
+		CD3DX12_DESCRIPTOR_RANGE range[3];
+		CD3DX12_ROOT_PARAMETER parameter[3];
 		
 		range[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
 		range[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+		//range[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
 		parameter[0].InitAsDescriptorTable(1, &range[0], D3D12_SHADER_VISIBILITY_VERTEX);
 		parameter[1].InitAsDescriptorTable(1, &range[1], D3D12_SHADER_VISIBILITY_PIXEL);
+		parameter[2].InitAsConstantBufferView(1, 0, D3D12_SHADER_VISIBILITY_VERTEX);
+		
 
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =	D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT; 
 
@@ -546,7 +549,7 @@ void Sample3DSceneRenderer::StopTracking()
 	m_tracking = false;
 }
 
-// Renders one frame using the vertex and pixel shaders.
+// Renders one frame using the vertex and pixel shaders.F
 bool Sample3DSceneRenderer::Render()
 {
 	// Loading is asynchronous. Only draw geometry after it's loaded.
@@ -570,8 +573,12 @@ bool Sample3DSceneRenderer::Render()
 		// Bind the current frame's constant buffer to the pipeline.
 		CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(m_cbvHeap->GetGPUDescriptorHandleForHeapStart(), m_deviceResources->GetCurrentFrameIndex(), m_cbvDescriptorSize);
 		m_commandList->SetGraphicsRootDescriptorTable(0, gpuHandle);
-		CD3DX12_GPU_DESCRIPTOR_HANDLE modelCbvGpuHandle(m_cbvHeap->GetGPUDescriptorHandleForHeapStart(), 3, m_cbvDescriptorSize);
+		CD3DX12_GPU_DESCRIPTOR_HANDLE modelCbvGpuHandle(m_cbvHeap->GetGPUDescriptorHandleForHeapStart(), 5, m_cbvDescriptorSize);
 		m_commandList->SetGraphicsRootDescriptorTable(1, modelCbvGpuHandle);
+	
+		m_commandList->SetGraphicsRootConstantBufferView(2, m_constantBuffer->GetGPUVirtualAddress() + (3 * c_alignedConstantBufferSize));
+		//CD3DX12_GPU_DESCRIPTOR_HANDLE modelCbvGpuHandle(m_cbvHeap->GetGPUDescriptorHandleForHeapStart(), 4, m_cbvDescriptorSize);
+		//m_commandList->SetGraphicsRootConstantBufferView(RootParameterCB, m_dynamicCB.GetGpuVirtualAddress(m_drawIndex, m_frameIndex));
 
 		// Set the viewport and scissor rectangle.
 		D3D12_VIEWPORT viewport = m_deviceResources->GetScreenViewport();
@@ -598,16 +605,28 @@ bool Sample3DSceneRenderer::Render()
 		UINT8* destination = m_mappedConstantBuffer + (3 * c_alignedConstantBufferSize);
 		ModelMatrixConstantBuffer *thisFrameBuffer = (ModelMatrixConstantBuffer *) destination;
 		XMStoreFloat4x4(&thisFrameBuffer->model, XMMatrixIdentity());
-		memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
+		//XMStoreFloat4x4(&thisFrameBuffer->model, XMMatrixTranspose(XMMatrixRotationRollPitchYaw(90.0f, 0.0f, 0.0f)));
+		memcpy(destination, thisFrameBuffer, sizeof(thisFrameBuffer));
 		m_commandList->DrawIndexedInstanced(6, 1, 36, 0, 0);
 
 		// Switch the model matrix to draw the ground in the right spot
 		//XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixIdentity());
 		// Update the constant buffer resource.
-		destination = m_mappedConstantBuffer + (4 * c_alignedConstantBufferSize);
+
+
+		//destination = m_mappedConstantBuffer + (4 * c_alignedConstantBufferSize);
+		//thisFrameBuffer = (ModelMatrixConstantBuffer *)destination;
+		//XMStoreFloat4x4(&thisFrameBuffer->model, XMMatrixIdentity());
+		//memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
+
+		destination = m_mappedConstantBuffer + (3 * c_alignedConstantBufferSize) + c_alignedModelConstantBufferSize;
 		thisFrameBuffer = (ModelMatrixConstantBuffer *)destination;
-		XMStoreFloat4x4(&thisFrameBuffer->model, XMMatrixIdentity());
-		memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
+		XMStoreFloat4x4(&thisFrameBuffer->model, XMMatrixTranspose(XMMatrixRotationRollPitchYaw(90.0f, 0.0f, 0.0f)));
+		XMStoreFloat4x4(&thisFrameBuffer->model, XMMatrixTranspose(XMMatrixTranslation(0.0f, 1.0f, 0.0f)));
+		memcpy(destination, thisFrameBuffer, sizeof(thisFrameBuffer));
+
+		m_commandList->SetGraphicsRootConstantBufferView(2, m_constantBuffer->GetGPUVirtualAddress() + (3 * c_alignedConstantBufferSize) + c_alignedModelConstantBufferSize);
+
 		m_commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
 
 		// Indicate that the render target will now be used to present when the command list is done executing.
