@@ -1,12 +1,10 @@
 ﻿#include "pch.h"
 #include "Sample3DSceneRenderer.h"
-
 #include "..\Common\DirectXHelper.h"
 #include <ppltasks.h>
 #include <synchapi.h>
 
 using namespace DirectX12Engine;
-
 using namespace Concurrency;
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -52,11 +50,9 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		
 		range[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
 		range[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
-		//range[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
 		parameter[0].InitAsDescriptorTable(1, &range[0], D3D12_SHADER_VISIBILITY_VERTEX);
 		parameter[1].InitAsDescriptorTable(1, &range[1], D3D12_SHADER_VISIBILITY_PIXEL);
 		parameter[2].InitAsConstantBufferView(1, 0, D3D12_SHADER_VISIBILITY_VERTEX);
-		
 
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =	D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT; 
 
@@ -77,7 +73,6 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 
 		CD3DX12_ROOT_SIGNATURE_DESC descRootSignature;
 		descRootSignature.Init(_countof(parameter), parameter, 1, &sampler, rootSignatureFlags);
-		//descRootSignature.Init(_countof(parameter), parameter, 0, nullptr);
 
 		ComPtr<ID3DBlob> pSignature;
 		ComPtr<ID3DBlob> pError;
@@ -136,13 +131,13 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		VertexTextureCoordinate cubeVertices[] =
 		{
 			{ XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT2(0.0f, 0.0f) },
-			{ XMFLOAT3(-0.5f, -0.5f,  0.5f), XMFLOAT2(0.0f, 0.0f) },
+			{ XMFLOAT3(-0.5f, -0.5f,  0.5f), XMFLOAT2(1.0f, 0.0f) },
 			{ XMFLOAT3(-0.5f,  0.5f, -0.5f), XMFLOAT2(0.0f, 1.0f) },
-			{ XMFLOAT3(-0.5f,  0.5f,  0.5f), XMFLOAT2(0.0f, 1.0f) },
+			{ XMFLOAT3(-0.5f,  0.5f,  0.5f), XMFLOAT2(1.0f, 1.0f) },
 			{ XMFLOAT3(0.5f, -0.5f, -0.5f), XMFLOAT2(1.0f, 0.0f) },
-			{ XMFLOAT3(0.5f, -0.5f,  0.5f), XMFLOAT2(1.0f, 0.0f) },
+			{ XMFLOAT3(0.5f, -0.5f,  0.5f), XMFLOAT2(0.0f, 0.0f) },
 			{ XMFLOAT3(0.5f,  0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f) },
-			{ XMFLOAT3(0.5f,  0.5f,  0.5f), XMFLOAT2(1.0f, 1.0f) },
+			{ XMFLOAT3(0.5f,  0.5f,  0.5f), XMFLOAT2(0.0f, 1.0f) },
 
 			// Floor vertices
 			{ XMFLOAT3(-3.0f, 0.0f, -3.0f), XMFLOAT2(0.0f, 0.0f) },
@@ -345,9 +340,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		// but this heap needs to stay in scope until the GPU work is complete. We will
 		// synchronize with the GPU at the end of this method before the ComPtr is destroyed.
 		ComPtr<ID3D12Resource> textureUploadHeap;
-
-		// Create the texture.
-		{
+		{	
 			// Describe and create a Texture2D.
 			D3D12_RESOURCE_DESC textureDesc = {};
 			textureDesc.MipLevels = 1;
@@ -469,14 +462,6 @@ void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
 {
 	if (m_loadingComplete)
 	{
-		if (!m_tracking)
-		{
-			// Rotate the cube a small amount.
-			//m_angle += static_cast<float>(timer.GetElapsedSeconds()) * m_radiansPerSecond;
-
-			//Rotate(.01f);
-		}
-
 		// Update the camera and the view and projection matrices
 		m_camera.Update(static_cast<float>(timer.GetElapsedSeconds()));
 		XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(m_camera.GetViewMatrix()));
@@ -502,7 +487,6 @@ void Sample3DSceneRenderer::SaveState()
 		state->Remove(TrackingKey);
 	}
 
-	//state->Insert(AngleKey, PropertyValue::CreateSingle(m_angle));
 	state->Insert(TrackingKey, PropertyValue::CreateBoolean(m_tracking));
 }
 
@@ -522,26 +506,9 @@ void Sample3DSceneRenderer::LoadState()
 	}
 }
 
-// Rotate the 3D cube model a set amount of radians.
-void Sample3DSceneRenderer::Rotate(float radians)
-{
-	// Prepare to pass the updated model matrix to the shader.
-	//XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixTranspose(XMMatrixRotationY(radians) * XMMatrixTranslation(0.0f, 0.5f, 0.0f)));
-}
-
 void Sample3DSceneRenderer::StartTracking()
 {
 	m_tracking = true;
-}
-
-// When tracking, the 3D cube can be rotated around its Y axis by tracking pointer position relative to the output screen width.
-void Sample3DSceneRenderer::TrackingUpdate(float positionX)
-{
-	if (m_tracking)
-	{
-		float radians = XM_2PI * 2.0f * positionX / m_deviceResources->GetOutputSize().Width;
-		Rotate(radians);
-	}
 }
 
 void Sample3DSceneRenderer::StopTracking()
@@ -573,12 +540,11 @@ bool Sample3DSceneRenderer::Render()
 		// Bind the current frame's constant buffer to the pipeline.
 		CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(m_cbvHeap->GetGPUDescriptorHandleForHeapStart(), m_deviceResources->GetCurrentFrameIndex(), m_cbvDescriptorSize);
 		m_commandList->SetGraphicsRootDescriptorTable(0, gpuHandle);
+		// Bind the shader resource view to the correct slot in the descriptor table
 		CD3DX12_GPU_DESCRIPTOR_HANDLE modelCbvGpuHandle(m_cbvHeap->GetGPUDescriptorHandleForHeapStart(), 5, m_cbvDescriptorSize);
 		m_commandList->SetGraphicsRootDescriptorTable(1, modelCbvGpuHandle);
-	
+		// Bind the first model matrix to the descriptor table
 		m_commandList->SetGraphicsRootConstantBufferView(2, m_constantBuffer->GetGPUVirtualAddress() + (3 * c_alignedConstantBufferSize));
-		//CD3DX12_GPU_DESCRIPTOR_HANDLE modelCbvGpuHandle(m_cbvHeap->GetGPUDescriptorHandleForHeapStart(), 4, m_cbvDescriptorSize);
-		//m_commandList->SetGraphicsRootConstantBufferView(RootParameterCB, m_dynamicCB.GetGpuVirtualAddress(m_drawIndex, m_frameIndex));
 
 		// Set the viewport and scissor rectangle.
 		D3D12_VIEWPORT viewport = m_deviceResources->GetScreenViewport();
@@ -599,34 +565,19 @@ bool Sample3DSceneRenderer::Render()
 		m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
 		m_commandList->IASetIndexBuffer(&m_indexBufferView);
 
-		// Switch the model matrix to draw the box in the right spot
-		//XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixTranspose(XMMatrixTranslation(3.0f, 1.0f, 2.0f)));
-		// Update the constant buffer resource.
-		UINT8* destination = m_mappedConstantBuffer + (3 * c_alignedConstantBufferSize);
-		ModelMatrixConstantBuffer *thisFrameBuffer = (ModelMatrixConstantBuffer *) destination;
-		XMStoreFloat4x4(&thisFrameBuffer->model, XMMatrixIdentity());
-		//XMStoreFloat4x4(&thisFrameBuffer->model, XMMatrixTranspose(XMMatrixRotationRollPitchYaw(90.0f, 0.0f, 0.0f)));
-		memcpy(destination, thisFrameBuffer, sizeof(thisFrameBuffer));
+		// Update the ground's model matrix
+		ModelMatrixConstantBuffer *objectModelMatrix = (ModelMatrixConstantBuffer *) (m_mappedConstantBuffer + (3 * c_alignedConstantBufferSize));
+		XMStoreFloat4x4(&objectModelMatrix->model, XMMatrixIdentity());
+		// Draw the ground
 		m_commandList->DrawIndexedInstanced(6, 1, 36, 0, 0);
 
-		// Switch the model matrix to draw the ground in the right spot
-		//XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixIdentity());
-		// Update the constant buffer resource.
-
-
-		//destination = m_mappedConstantBuffer + (4 * c_alignedConstantBufferSize);
-		//thisFrameBuffer = (ModelMatrixConstantBuffer *)destination;
-		//XMStoreFloat4x4(&thisFrameBuffer->model, XMMatrixIdentity());
-		//memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
-
-		destination = m_mappedConstantBuffer + (3 * c_alignedConstantBufferSize) + c_alignedModelConstantBufferSize;
-		thisFrameBuffer = (ModelMatrixConstantBuffer *)destination;
-		XMStoreFloat4x4(&thisFrameBuffer->model, XMMatrixTranspose(XMMatrixRotationRollPitchYaw(90.0f, 0.0f, 0.0f)));
-		XMStoreFloat4x4(&thisFrameBuffer->model, XMMatrixTranspose(XMMatrixTranslation(0.0f, 1.0f, 0.0f)));
-		memcpy(destination, thisFrameBuffer, sizeof(thisFrameBuffer));
-
+		// Switch the model matrix to point to the cube's matrix slot in the descriptor heap
 		m_commandList->SetGraphicsRootConstantBufferView(2, m_constantBuffer->GetGPUVirtualAddress() + (3 * c_alignedConstantBufferSize) + c_alignedModelConstantBufferSize);
 
+		// Update the cube's model matrix
+		objectModelMatrix = (ModelMatrixConstantBuffer *) (m_mappedConstantBuffer + (3 * c_alignedConstantBufferSize) + c_alignedModelConstantBufferSize);
+		XMStoreFloat4x4(&objectModelMatrix->model, XMMatrixTranspose(XMMatrixTranslation(0.0f, 1.0f, 0.0f)));
+		// Draw the cube
 		m_commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
 
 		// Indicate that the render target will now be used to present when the command list is done executing.
