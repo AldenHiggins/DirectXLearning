@@ -11,10 +11,6 @@ using namespace Microsoft::WRL;
 using namespace Windows::Foundation;
 using namespace Windows::Storage;
 
-// Indices into the application state map.
-Platform::String^ AngleKey = "Angle";
-Platform::String^ TrackingKey = "Tracking";
-
 // Loads vertex and pixel shaders from files and instantiates the cube geometry.
 Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) :
 	m_loadingComplete(false),
@@ -23,7 +19,6 @@ Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceRes
 	m_mappedConstantBuffer(nullptr),
 	m_deviceResources(deviceResources)
 {
-	LoadState();
 	ZeroMemory(&m_constantBufferData, sizeof(m_constantBufferData));
 
 	m_camera.Init({ 0, 2, 5 });
@@ -417,105 +412,6 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 	});
 }
 
-// Initializes view parameters when the window size changes.
-void Sample3DSceneRenderer::CreateWindowSizeDependentResources()
-{
-	Size outputSize = m_deviceResources->GetOutputSize();
-	m_aspectRatio = outputSize.Width / outputSize.Height;
-	float fovAngleY = 70.0f * XM_PI / 180.0f;
-
-	D3D12_VIEWPORT viewport = m_deviceResources->GetScreenViewport();
-	m_scissorRect = { 0, 0, static_cast<LONG>(viewport.Width), static_cast<LONG>(viewport.Height)};
-
-	// This is a simple example of change that can be made when the app is in
-	// portrait or snapped view.
-	if (m_aspectRatio < 1.0f)
-	{
-		fovAngleY *= 2.0f;
-	}
-
-	// Note that the OrientationTransform3D matrix is post-multiplied here
-	// in order to correctly orient the scene to match the display orientation.
-	// This post-multiplication step is required for any draw calls that are
-	// made to the swap chain render target. For draw calls to other targets,
-	// this transform should not be applied.
-
-	// This sample makes use of a right-handed coordinate system using row-major matrices.
-	XMMATRIX perspectiveMatrix = XMMatrixPerspectiveFovRH(
-		fovAngleY,
-		m_aspectRatio,
-		0.01f,
-		100.0f
-		);
-
-	XMFLOAT4X4 orientation = m_deviceResources->GetOrientationTransform3D();
-	XMMATRIX orientationMatrix = XMLoadFloat4x4(&orientation);
-
-	XMStoreFloat4x4(
-		&m_constantBufferData.projection,
-		XMMatrixTranspose(perspectiveMatrix * orientationMatrix)
-		);
-}
-
-// Called once per frame, rotates the cube and calculates the model and view matrices.
-void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
-{
-	if (m_loadingComplete)
-	{
-		// Update the camera and the view and projection matrices
-		m_camera.Update(static_cast<float>(timer.GetElapsedSeconds()));
-		XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(m_camera.GetViewMatrix()));
-		XMStoreFloat4x4(&m_constantBufferData.projection, XMMatrixTranspose(m_camera.GetProjectionMatrix(0.8f, m_aspectRatio)));
-
-		// Update the constant buffer resource.
-		UINT8* destination = m_mappedConstantBuffer + (m_deviceResources->GetCurrentFrameIndex() * c_alignedConstantBufferSize);
-		memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
-	}
-}
-
-// Saves the current state of the renderer.
-void Sample3DSceneRenderer::SaveState()
-{
-	auto state = ApplicationData::Current->LocalSettings->Values;
-
-	if (state->HasKey(AngleKey))
-	{
-		state->Remove(AngleKey);
-	}
-	if (state->HasKey(TrackingKey))
-	{
-		state->Remove(TrackingKey);
-	}
-
-	state->Insert(TrackingKey, PropertyValue::CreateBoolean(m_tracking));
-}
-
-// Restores the previous state of the renderer.
-void Sample3DSceneRenderer::LoadState()
-{
-	auto state = ApplicationData::Current->LocalSettings->Values;
-	if (state->HasKey(AngleKey))
-	{
-		//m_angle = safe_cast<IPropertyValue^>(state->Lookup(AngleKey))->GetSingle();
-		state->Remove(AngleKey);
-	}
-	if (state->HasKey(TrackingKey))
-	{
-		m_tracking = safe_cast<IPropertyValue^>(state->Lookup(TrackingKey))->GetBoolean();
-		state->Remove(TrackingKey);
-	}
-}
-
-void Sample3DSceneRenderer::StartTracking()
-{
-	m_tracking = true;
-}
-
-void Sample3DSceneRenderer::StopTracking()
-{
-	m_tracking = false;
-}
-
 // Renders one frame using the vertex and pixel shaders.F
 bool Sample3DSceneRenderer::Render()
 {
@@ -560,13 +456,12 @@ bool Sample3DSceneRenderer::Render()
 		m_commandList->ClearRenderTargetView(m_deviceResources->GetRenderTargetView(), DirectX::Colors::CornflowerBlue, 0, nullptr);
 		D3D12_CPU_DESCRIPTOR_HANDLE renderTargetView = m_deviceResources->GetRenderTargetView();
 		m_commandList->OMSetRenderTargets(1, &renderTargetView, false, nullptr);
-
 		m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
 		m_commandList->IASetIndexBuffer(&m_indexBufferView);
 
 		// Update the ground's model matrix
-		ModelMatrixConstantBuffer *objectModelMatrix = (ModelMatrixConstantBuffer *) (m_mappedConstantBuffer + (3 * c_alignedConstantBufferSize));
+		ModelMatrixConstantBuffer *objectModelMatrix = (ModelMatrixConstantBuffer *)(m_mappedConstantBuffer + (3 * c_alignedConstantBufferSize));
 		XMStoreFloat4x4(&objectModelMatrix->model, XMMatrixIdentity());
 		// Draw the ground
 		m_commandList->DrawIndexedInstanced(6, 1, 36, 0, 0);
@@ -575,7 +470,7 @@ bool Sample3DSceneRenderer::Render()
 		m_commandList->SetGraphicsRootConstantBufferView(2, m_constantBuffer->GetGPUVirtualAddress() + (3 * c_alignedConstantBufferSize) + c_alignedModelConstantBufferSize);
 
 		// Update the cube's model matrix
-		objectModelMatrix = (ModelMatrixConstantBuffer *) (m_mappedConstantBuffer + (3 * c_alignedConstantBufferSize) + c_alignedModelConstantBufferSize);
+		objectModelMatrix = (ModelMatrixConstantBuffer *)(m_mappedConstantBuffer + (3 * c_alignedConstantBufferSize) + c_alignedModelConstantBufferSize);
 		XMStoreFloat4x4(&objectModelMatrix->model, XMMatrixTranspose(XMMatrixTranslation(0.0f, 1.0f, 0.0f)));
 		// Draw the cube
 		m_commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
@@ -594,6 +489,64 @@ bool Sample3DSceneRenderer::Render()
 	m_deviceResources->GetCommandQueue()->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
 	return true;
+}
+
+// Initializes view parameters when the window size changes.
+void Sample3DSceneRenderer::CreateWindowSizeDependentResources()
+{
+	Size outputSize = m_deviceResources->GetOutputSize();
+	m_aspectRatio = outputSize.Width / outputSize.Height;
+	float fovAngleY = 70.0f * XM_PI / 180.0f;
+
+	D3D12_VIEWPORT viewport = m_deviceResources->GetScreenViewport();
+	m_scissorRect = { 0, 0, static_cast<LONG>(viewport.Width), static_cast<LONG>(viewport.Height)};
+
+	// This is a simple example of change that can be made when the app is in
+	// portrait or snapped view.
+	if (m_aspectRatio < 1.0f)
+	{
+		fovAngleY *= 2.0f;
+	}
+
+	// Note that the OrientationTransform3D matrix is post-multiplied here
+	// in order to correctly orient the scene to match the display orientation.
+	// This post-multiplication step is required for any draw calls that are
+	// made to the swap chain render target. For draw calls to other targets,
+	// this transform should not be applied.
+
+	// This sample makes use of a right-handed coordinate system using row-major matrices.
+	XMMATRIX perspectiveMatrix = XMMatrixPerspectiveFovRH(
+		fovAngleY,
+		m_aspectRatio,
+		0.01f,
+		100.0f
+		);
+
+	XMFLOAT4X4 orientation = m_deviceResources->GetOrientationTransform3D();
+	XMMATRIX orientationMatrix = XMLoadFloat4x4(&orientation);
+
+	XMStoreFloat4x4(
+		&m_constantBufferData.projection,
+		XMMatrixTranspose(perspectiveMatrix * orientationMatrix)
+		);
+}
+
+// Called once per frame, rotates the cube and calculates the model and view matrices.
+void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
+{
+	if (!m_loadingComplete)
+	{
+		return;
+	}
+
+	// Update the camera and the view and projection matrices
+	m_camera.Update(static_cast<float>(timer.GetElapsedSeconds()));
+	XMStoreFloat4x4(&m_constantBufferData.view, XMMatrixTranspose(m_camera.GetViewMatrix()));
+	XMStoreFloat4x4(&m_constantBufferData.projection, XMMatrixTranspose(m_camera.GetProjectionMatrix(0.8f, m_aspectRatio)));
+
+	// Update the constant buffer resource.
+	UINT8* destination = m_mappedConstantBuffer + (m_deviceResources->GetCurrentFrameIndex() * c_alignedConstantBufferSize);
+	memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
 }
 
 void Sample3DSceneRenderer::KeyUpEvent(Windows::UI::Core::KeyEventArgs^ args)
@@ -640,5 +593,3 @@ std::vector<UINT8> Sample3DSceneRenderer::GenerateTextureData()
 
 	return data;
 }
-
-

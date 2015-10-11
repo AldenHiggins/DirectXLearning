@@ -17,27 +17,19 @@ namespace DirectX12Engine
 		void CreateWindowSizeDependentResources();
 		void Update(DX::StepTimer const& timer);
 		bool Render();
-		void SaveState();
 
-		void StartTracking();
-		void TrackingUpdate(float positionX);
-		void StopTracking();
-		bool IsTracking() { return m_tracking; }
 		void KeyEvent(Windows::UI::Core::KeyEventArgs^ args);
 		void KeyUpEvent(Windows::UI::Core::KeyEventArgs^ args);
 
 	private:
-		void LoadState();
-
-	private:
-		// Constant buffers must be 256-byte aligned.
+		// Constant buffers must be 256-byte aligned
 		static const UINT c_alignedConstantBufferSize = (sizeof(ViewProjectionConstantBuffer) + 255) & ~255;
 		static const UINT c_alignedModelConstantBufferSize = (sizeof(ModelMatrixConstantBuffer) + 255) & ~255;
 
-		// Cached pointer to device resources.
+		// Cached pointer to device resources
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
 
-		// Direct3D resources for cube geometry.
+		// Direct3D resources for scene geometry
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_commandList;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>			m_rootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>			m_pipelineState;
@@ -71,7 +63,6 @@ namespace DirectX12Engine
 		static const UINT TextureHeight = 256;
 		static const UINT TexturePixelSize = 4;
 		std::vector<UINT8> GenerateTextureData();
-
 	};
 }
 

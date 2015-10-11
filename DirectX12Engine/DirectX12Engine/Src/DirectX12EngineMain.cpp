@@ -71,9 +71,7 @@ void DirectX12EngineMain::OnSuspending()
 	// Process lifetime management may terminate suspended apps at any time, so it is
 	// good practice to save any state that will allow the app to restart where it left off.
 
-	m_sceneRenderer->SaveState();
-
-	// If your application uses video memory allocations that are easy to re-create,
+	// If your application uses video memory alloca tions that are easy to re-create,
 	// consider releasing that memory to make it available to other applications.
 }
 
@@ -88,7 +86,6 @@ void DirectX12EngineMain::OnDeviceRemoved()
 {
 	// TODO: Save any necessary application or renderer state and release the renderer
 	// and its resources which are no longer valid.
-	m_sceneRenderer->SaveState();
 	m_sceneRenderer = nullptr;
 }
 
