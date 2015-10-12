@@ -1,6 +1,7 @@
 #include "ModelImporter.h"
 #include "pch.h"
 #include "..\Common\DirectXHelper.h"
+#include "Content\ShaderStructures.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -16,12 +17,14 @@ using namespace DirectX;
 
 void ModelImporter::importObject()
 {
+	float scalingFactor = .1;
 	string line;
 	ifstream myfile("diamond.obj");
 	// Read in all of the lines of the obj file
 	if (myfile.is_open())
 	{
 		bool readingVerts = false;
+		vector<VertexTextureCoordinate> vertices;
 
 		while (getline(myfile, line))
 		{
@@ -34,11 +37,16 @@ void ModelImporter::importObject()
 			// Check to see if this line contains vertex information
 			if (line[0] == 'v')
 			{
-				cout << line << '\n';
+				// Tokenize the string to extract the three vertex floats
 				vector<string> vertexPosStringTokens = tokenizeString(line);
-				vertexPosStringTokens[0] = vertexPosStringTokens[0];
+				// Add the vertex to the list of vertices
+				VertexTextureCoordinate thisVert = 
+				{
+					XMFLOAT3(stof(vertexPosStringTokens[1]) * scalingFactor, stof(vertexPosStringTokens[2]) * scalingFactor, stof(vertexPosStringTokens[3]) * scalingFactor),
+					XMFLOAT2(0.5f, 0.5f)
+				};
+				vertices.push_back(thisVert);
 			}
-
 		}
 		myfile.close();
 	}
