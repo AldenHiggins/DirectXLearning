@@ -15,10 +15,11 @@ using namespace DirectX;
 //  VertexTextureCoordinate
 //  XMFLOAT3, XMFLOAT2
 
-vector<VertexTextureCoordinate> ModelImporter::importObject()
+ImportStructure ModelImporter::importObject()
 {
 	vector<VertexTextureCoordinate> vertices;
-	float scalingFactor = .1f;
+	vector<unsigned short> indices;
+	float scalingFactor = .03f;
 	string line;
 	ifstream myfile("diamond.obj");
 	// Read in all of the lines of the obj file
@@ -47,6 +48,17 @@ vector<VertexTextureCoordinate> ModelImporter::importObject()
 				};
 				vertices.push_back(thisVert);
 			}
+
+			// Check to see if this line contains indices denoting a face
+			if (line[0] == 'f')
+			{
+				// Tokenize the string to extract the indices
+				vector<string> indicesStringTokens = tokenizeString(line);
+
+				indices.push_back((unsigned short)stof(indicesStringTokens[1]) - 1);
+				indices.push_back((unsigned short)stof(indicesStringTokens[2]) - 1);
+				indices.push_back((unsigned short)stof(indicesStringTokens[3]) - 1);
+			}
 		}
 		myfile.close();
 	}
@@ -55,7 +67,9 @@ vector<VertexTextureCoordinate> ModelImporter::importObject()
 		cout << "Unable to open file";
 	}
 
-	return vertices;
+	ImportStructure returnStruct = { vertices, indices };
+
+	return returnStruct;
 }
 
 vector<string> ModelImporter::tokenizeString(string inputString)

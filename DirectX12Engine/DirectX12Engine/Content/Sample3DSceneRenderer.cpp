@@ -123,7 +123,8 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		DX::ThrowIfFailed(d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_deviceResources->GetCommandAllocator(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
 
 		// Call the model importer
-		std::vector<VertexTextureCoordinate> vertices = m_modelImporter.importObject();
+		ImportStructure fileImport = m_modelImporter.importObject();
+		std::vector<VertexTextureCoordinate> vertices = fileImport.vertices;
 
 		// Add on the cube vertices
 		vertices.push_back({ XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT2(0.0f, 0.0f) });
@@ -185,6 +186,9 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 			m_commandList->ResourceBarrier(1, &vertexBufferResourceBarrier);
 		}
 
+		// Start the index buffer with data taken in from the importer
+		std::vector<unsigned short> indices = fileImport.indices;
+
 		// Load mesh indices. Each trio of indices represents a triangle to be rendered on the screen.
 		// For example: 0,2,1 means that the vertices with indexes 0, 2 and 1 from the vertex buffer compose the
 		// first triangle of this mesh.
@@ -213,7 +217,14 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 			10, 9, 11,
 		};
 
-		const UINT indexBufferSize = sizeof(cubeIndices);
+		for (int index = 0; index < 42; index++)
+		{
+			indices.push_back(cubeIndices[index] + 6);
+		}
+
+		unsigned short *indicesPointer = &indices[0];
+
+		const UINT indexBufferSize = sizeof(unsigned short) * indices.size();
 
 		// Create the index buffer resource in the GPU's default heap and copy index data into it using the upload heap.
 		// The upload resource must not be released until after the GPU has finished using it.
@@ -242,7 +253,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		// Upload the index buffer to the GPU.
 		{
 			D3D12_SUBRESOURCE_DATA indexData = {};
-			indexData.pData = reinterpret_cast<BYTE*>(cubeIndices);
+			indexData.pData = reinterpret_cast<BYTE*>(indicesPointer);
 			indexData.RowPitch = indexBufferSize;
 			indexData.SlicePitch = indexData.RowPitch;
 
@@ -402,7 +413,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		m_vertexBufferView.SizeInBytes = sizeof(VertexTextureCoordinate) * vertices.size();
 
 		m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
-		m_indexBufferView.SizeInBytes = sizeof(cubeIndices);
+		m_indexBufferView.SizeInBytes = sizeof(unsigned short) * indices.size();
 		m_indexBufferView.Format = DXGI_FORMAT_R16_UINT;
 
 		// Wait for the command list to finish executing; the vertex/index buffers need to be uploaded to the GPU before the upload resources go out of scope.
@@ -466,7 +477,9 @@ bool Sample3DSceneRenderer::Render()
 		ModelMatrixConstantBuffer *objectModelMatrix = (ModelMatrixConstantBuffer *)(m_mappedConstantBuffer + (3 * c_alignedConstantBufferSize));
 		XMStoreFloat4x4(&objectModelMatrix->model, XMMatrixIdentity());
 		// Draw the ground
-		m_commandList->DrawIndexedInstanced(6, 1, 36, 0, 0);
+		m_commandList->DrawIndexedInstanced(6, 1, 63, 0, 0);
+		// Draw the diamond
+		m_commandList->DrawIndexedInstanced(27, 1, 0, 0, 0);
 
 		// Switch the model matrix to point to the cube's matrix slot in the descriptor heap
 		m_commandList->SetGraphicsRootConstantBufferView(2, m_constantBuffer->GetGPUVirtualAddress() + (3 * c_alignedConstantBufferSize) + c_alignedModelConstantBufferSize);
@@ -475,7 +488,7 @@ bool Sample3DSceneRenderer::Render()
 		objectModelMatrix = (ModelMatrixConstantBuffer *)(m_mappedConstantBuffer + (3 * c_alignedConstantBufferSize) + c_alignedModelConstantBufferSize);
 		XMStoreFloat4x4(&objectModelMatrix->model, XMMatrixTranspose(XMMatrixTranslation(0.0f, 1.0f, 0.0f)));
 		// Draw the cube
-		m_commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
+		m_commandList->DrawIndexedInstanced(36, 1, 27, 0, 0);
 
 		// Indicate that the render target will now be used to present when the command list is done executing.
 		CD3DX12_RESOURCE_BARRIER presentResourceBarrier =

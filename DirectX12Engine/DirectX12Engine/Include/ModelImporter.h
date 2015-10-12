@@ -6,10 +6,16 @@
 
 namespace DirectX12Engine
 {
+	struct ImportStructure
+	{
+		std::vector<VertexTextureCoordinate> vertices;
+		std::vector<unsigned short> indices;
+	};
+
 	class ModelImporter 
 	{
 	public:
-		std::vector<VertexTextureCoordinate> importObject();
+		ImportStructure importObject();
 
 	private:
 		std::vector<std::string> tokenizeString(std::string inputString);
