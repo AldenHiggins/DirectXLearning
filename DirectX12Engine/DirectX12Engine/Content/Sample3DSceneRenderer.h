@@ -52,6 +52,8 @@ namespace DirectX12Engine
 
 		// Model importer object
 		ModelImporter										m_modelImporter;
+		// Object importation data
+		ImportStructure										m_objectData;
 
 		// Camera variables
 		SimpleCamera m_camera;

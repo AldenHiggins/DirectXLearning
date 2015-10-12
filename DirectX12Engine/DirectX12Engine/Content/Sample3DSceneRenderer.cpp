@@ -123,8 +123,8 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		DX::ThrowIfFailed(d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_deviceResources->GetCommandAllocator(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
 
 		// Call the model importer
-		ImportStructure fileImport = m_modelImporter.importObject();
-		std::vector<VertexTextureCoordinate> vertices = fileImport.vertices;
+		m_objectData = m_modelImporter.importObject("teapot.obj", 0.03f);
+		std::vector<VertexTextureCoordinate> vertices = m_objectData.vertices;
 
 		// Add on the cube vertices
 		vertices.push_back({ XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT2(0.0f, 0.0f) });
@@ -187,7 +187,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		}
 
 		// Start the index buffer with data taken in from the importer
-		std::vector<unsigned short> indices = fileImport.indices;
+		std::vector<unsigned short> indices = m_objectData.indices;
 
 		// Load mesh indices. Each trio of indices represents a triangle to be rendered on the screen.
 		// For example: 0,2,1 means that the vertices with indexes 0, 2 and 1 from the vertex buffer compose the
@@ -219,7 +219,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 
 		for (int index = 0; index < 42; index++)
 		{
-			indices.push_back(cubeIndices[index] + 6);
+			indices.push_back(cubeIndices[index]);
 		}
 
 		unsigned short *indicesPointer = &indices[0];
@@ -477,9 +477,9 @@ bool Sample3DSceneRenderer::Render()
 		ModelMatrixConstantBuffer *objectModelMatrix = (ModelMatrixConstantBuffer *)(m_mappedConstantBuffer + (3 * c_alignedConstantBufferSize));
 		XMStoreFloat4x4(&objectModelMatrix->model, XMMatrixIdentity());
 		// Draw the ground
-		m_commandList->DrawIndexedInstanced(6, 1, 63, 0, 0);
+		m_commandList->DrawIndexedInstanced(6, 1, 36 + m_objectData.objects[0].numberIndices, m_objectData.objects[0].numberVertices, 0);
 		// Draw the diamond
-		m_commandList->DrawIndexedInstanced(27, 1, 0, 0, 0);
+		m_commandList->DrawIndexedInstanced(m_objectData.objects[0].numberIndices, 1, 0, 0, 0);
 
 		// Switch the model matrix to point to the cube's matrix slot in the descriptor heap
 		m_commandList->SetGraphicsRootConstantBufferView(2, m_constantBuffer->GetGPUVirtualAddress() + (3 * c_alignedConstantBufferSize) + c_alignedModelConstantBufferSize);
@@ -488,7 +488,7 @@ bool Sample3DSceneRenderer::Render()
 		objectModelMatrix = (ModelMatrixConstantBuffer *)(m_mappedConstantBuffer + (3 * c_alignedConstantBufferSize) + c_alignedModelConstantBufferSize);
 		XMStoreFloat4x4(&objectModelMatrix->model, XMMatrixTranspose(XMMatrixTranslation(0.0f, 1.0f, 0.0f)));
 		// Draw the cube
-		m_commandList->DrawIndexedInstanced(36, 1, 27, 0, 0);
+		m_commandList->DrawIndexedInstanced(36, 1, m_objectData.objects[0].numberIndices, m_objectData.objects[0].numberVertices, 0);
 
 		// Indicate that the render target will now be used to present when the command list is done executing.
 		CD3DX12_RESOURCE_BARRIER presentResourceBarrier =

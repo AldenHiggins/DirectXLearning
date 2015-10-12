@@ -12,16 +12,15 @@ using namespace std;
 using namespace DirectX12Engine;
 using namespace DirectX;
 
-//  VertexTextureCoordinate
-//  XMFLOAT3, XMFLOAT2
-
-ImportStructure ModelImporter::importObject()
+ImportStructure ModelImporter::importObject(string filename, float scaleFactor)
 {
+	// Structures that will be filled up while reading in the obj file
 	vector<VertexTextureCoordinate> vertices;
 	vector<unsigned short> indices;
-	float scalingFactor = .03f;
+
 	string line;
-	ifstream myfile("diamond.obj");
+	ifstream myfile(filename);
+
 	// Read in all of the lines of the obj file
 	if (myfile.is_open())
 	{
@@ -43,7 +42,7 @@ ImportStructure ModelImporter::importObject()
 				// Add the vertex to the list of vertices
 				VertexTextureCoordinate thisVert = 
 				{
-					XMFLOAT3(stof(vertexPosStringTokens[1]) * scalingFactor, stof(vertexPosStringTokens[2]) * scalingFactor, stof(vertexPosStringTokens[3]) * scalingFactor),
+					XMFLOAT3(stof(vertexPosStringTokens[1]) * scaleFactor, stof(vertexPosStringTokens[2]) * scaleFactor, stof(vertexPosStringTokens[3]) * scaleFactor),
 					XMFLOAT2(0.5f, 0.5f)
 				};
 				vertices.push_back(thisVert);
@@ -67,7 +66,10 @@ ImportStructure ModelImporter::importObject()
 		cout << "Unable to open file";
 	}
 
-	ImportStructure returnStruct = { vertices, indices };
+	ObjectDescription thisObject = { indices.size(), vertices.size() };
+	vector<ObjectDescription> objectDescriptions;
+	objectDescriptions.push_back(thisObject);
+	ImportStructure returnStruct = { vertices, indices, objectDescriptions };
 
 	return returnStruct;
 }
