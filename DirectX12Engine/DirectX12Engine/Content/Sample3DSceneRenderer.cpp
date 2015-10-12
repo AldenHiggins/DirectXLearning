@@ -123,28 +123,27 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		DX::ThrowIfFailed(d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_deviceResources->GetCommandAllocator(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
 
 		// Call the model importer
-		m_modelImporter.importObject();
+		std::vector<VertexTextureCoordinate> vertices = m_modelImporter.importObject();
 
-		// Cube vertices. Each vertex has a position and a color.
-		VertexTextureCoordinate cubeVertices[] =
-		{
-			{ XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT2(0.0f, 0.0f) },
-			{ XMFLOAT3(-0.5f, -0.5f,  0.5f), XMFLOAT2(1.0f, 0.0f) },
-			{ XMFLOAT3(-0.5f,  0.5f, -0.5f), XMFLOAT2(0.0f, 1.0f) },
-			{ XMFLOAT3(-0.5f,  0.5f,  0.5f), XMFLOAT2(1.0f, 1.0f) },
-			{ XMFLOAT3(0.5f, -0.5f, -0.5f), XMFLOAT2(1.0f, 0.0f) },
-			{ XMFLOAT3(0.5f, -0.5f,  0.5f), XMFLOAT2(0.0f, 0.0f) },
-			{ XMFLOAT3(0.5f,  0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f) },
-			{ XMFLOAT3(0.5f,  0.5f,  0.5f), XMFLOAT2(0.0f, 1.0f) },
+		// Add on the cube vertices
+		vertices.push_back({ XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT2(0.0f, 0.0f) });
+		vertices.push_back({ XMFLOAT3(-0.5f, -0.5f,  0.5f), XMFLOAT2(1.0f, 0.0f) });
+		vertices.push_back({ XMFLOAT3(-0.5f,  0.5f, -0.5f), XMFLOAT2(0.0f, 1.0f) });
+		vertices.push_back({ XMFLOAT3(-0.5f,  0.5f,  0.5f), XMFLOAT2(1.0f, 1.0f) });
+		vertices.push_back({ XMFLOAT3(0.5f, -0.5f, -0.5f), XMFLOAT2(1.0f, 0.0f) });
+		vertices.push_back({ XMFLOAT3(0.5f, -0.5f,  0.5f), XMFLOAT2(0.0f, 0.0f) });
+		vertices.push_back({ XMFLOAT3(0.5f,  0.5f, -0.5f), XMFLOAT2(1.0f, 1.0f) });
+		vertices.push_back({ XMFLOAT3(0.5f,  0.5f,  0.5f), XMFLOAT2(0.0f, 1.0f) });
 
-			// Floor vertices
-			{ XMFLOAT3(-3.0f, 0.0f, -3.0f), XMFLOAT2(0.0f, 0.0f) },
-			{ XMFLOAT3(-3.0f, 0.0f,  3.0f), XMFLOAT2(0.0f, 1.0f) },
-			{ XMFLOAT3(3.0f,  0.0f, 3.0f), XMFLOAT2(1.0f, 1.0f) },
-			{ XMFLOAT3(3.0f,  0.0f,  -3.0f), XMFLOAT2(1.0f, 0.0f) },
-		};
+		// Floor vertices
+		vertices.push_back({ XMFLOAT3(-3.0f, 0.0f, -3.0f), XMFLOAT2(0.0f, 0.0f) });
+		vertices.push_back({ XMFLOAT3(-3.0f, 0.0f,  3.0f), XMFLOAT2(0.0f, 1.0f) });
+		vertices.push_back({ XMFLOAT3(3.0f,  0.0f, 3.0f), XMFLOAT2(1.0f, 1.0f) });
+		vertices.push_back({ XMFLOAT3(3.0f,  0.0f,  -3.0f), XMFLOAT2(1.0f, 0.0f) });
 
-		const UINT vertexBufferSize = sizeof(cubeVertices);
+		VertexTextureCoordinate *vertexArray = &vertices[0];
+
+		const UINT vertexBufferSize = sizeof(VertexTextureCoordinate) * vertices.size();
 
 		// Create the vertex buffer resource in the GPU's default heap and copy vertex data into it using the upload heap.
 		// The upload resource must not be released until after the GPU has finished using it.
@@ -175,7 +174,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		// Upload the vertex buffer to the GPU.
 		{
 			D3D12_SUBRESOURCE_DATA vertexData = {};
-			vertexData.pData = reinterpret_cast<BYTE*>(cubeVertices);
+			vertexData.pData = reinterpret_cast<BYTE*>(vertexArray);
 			vertexData.RowPitch = vertexBufferSize;
 			vertexData.SlicePitch = vertexData.RowPitch;
 
@@ -400,7 +399,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		// Create vertex/index buffer views.
 		m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
 		m_vertexBufferView.StrideInBytes = sizeof(VertexTextureCoordinate);
-		m_vertexBufferView.SizeInBytes = sizeof(cubeVertices);
+		m_vertexBufferView.SizeInBytes = sizeof(VertexTextureCoordinate) * vertices.size();
 
 		m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
 		m_indexBufferView.SizeInBytes = sizeof(cubeIndices);

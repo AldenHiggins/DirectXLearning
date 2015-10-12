@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include "pch.h"
+
 namespace DirectX12Engine
 {
 	// Constant buffer used to send MVP matrices to the vertex shader.

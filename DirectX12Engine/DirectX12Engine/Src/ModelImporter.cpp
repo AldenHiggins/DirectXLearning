@@ -15,16 +15,16 @@ using namespace DirectX;
 //  VertexTextureCoordinate
 //  XMFLOAT3, XMFLOAT2
 
-void ModelImporter::importObject()
+vector<VertexTextureCoordinate> ModelImporter::importObject()
 {
-	float scalingFactor = .1;
+	vector<VertexTextureCoordinate> vertices;
+	float scalingFactor = .1f;
 	string line;
 	ifstream myfile("diamond.obj");
 	// Read in all of the lines of the obj file
 	if (myfile.is_open())
 	{
 		bool readingVerts = false;
-		vector<VertexTextureCoordinate> vertices;
 
 		while (getline(myfile, line))
 		{
@@ -50,8 +50,12 @@ void ModelImporter::importObject()
 		}
 		myfile.close();
 	}
+	else
+	{
+		cout << "Unable to open file";
+	}
 
-	else cout << "Unable to open file";
+	return vertices;
 }
 
 vector<string> ModelImporter::tokenizeString(string inputString)
