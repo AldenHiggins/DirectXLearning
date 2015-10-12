@@ -122,6 +122,9 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		// Create a command list.
 		DX::ThrowIfFailed(d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_deviceResources->GetCommandAllocator(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
 
+		// Call the model importer
+		m_modelImporter.importObject();
+
 		// Cube vertices. Each vertex has a position and a color.
 		VertexTextureCoordinate cubeVertices[] =
 		{

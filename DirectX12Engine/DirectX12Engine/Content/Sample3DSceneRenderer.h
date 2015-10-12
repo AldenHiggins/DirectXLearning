@@ -4,6 +4,7 @@
 #include "ShaderStructures.h"
 #include "..\Common\StepTimer.h"
 #include "SimpleCamera.h"
+#include "ModelImporter.h"
 
 namespace DirectX12Engine
 {
@@ -48,6 +49,9 @@ namespace DirectX12Engine
 		std::vector<byte>									m_pixelShader;
 		D3D12_VERTEX_BUFFER_VIEW							m_vertexBufferView;
 		D3D12_INDEX_BUFFER_VIEW								m_indexBufferView;
+
+		// Model importer object
+		ModelImporter										m_modelImporter;
 
 		// Camera variables
 		SimpleCamera m_camera;
