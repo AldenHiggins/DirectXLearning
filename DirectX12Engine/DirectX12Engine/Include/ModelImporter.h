@@ -22,10 +22,12 @@ namespace DirectX12Engine
 	class ModelImporter 
 	{
 	public:
-		ImportStructure importObject(std::string filename, float scaleFactor);
+		static ImportStructure importObjectObjFile(std::string filename, float scaleFactor);
+
+
 
 	private:
-		std::vector<std::string> tokenizeString(std::string inputString);
+		static std::vector<std::string> tokenizeString(std::string inputString);
 	
 	};
 

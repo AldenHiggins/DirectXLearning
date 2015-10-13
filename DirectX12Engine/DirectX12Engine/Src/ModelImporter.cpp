@@ -12,7 +12,7 @@ using namespace std;
 using namespace DirectX12Engine;
 using namespace DirectX;
 
-ImportStructure ModelImporter::importObject(string filename, float scaleFactor)
+ImportStructure ModelImporter::importObjectObjFile(string filename, float scaleFactor)
 {
 	// Structures that will be filled up while reading in the obj file
 	vector<VertexTextureCoordinate> vertices;
@@ -66,7 +66,7 @@ ImportStructure ModelImporter::importObject(string filename, float scaleFactor)
 		cout << "Unable to open file";
 	}
 
-	ObjectDescription thisObject = { indices.size(), vertices.size() };
+	ObjectDescription thisObject = { (unsigned short) indices.size(), (unsigned short) vertices.size() };
 	vector<ObjectDescription> objectDescriptions;
 	objectDescriptions.push_back(thisObject);
 	ImportStructure returnStruct = { vertices, indices, objectDescriptions };

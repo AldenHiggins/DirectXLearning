@@ -123,7 +123,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		DX::ThrowIfFailed(d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_deviceResources->GetCommandAllocator(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
 
 		// Call the model importer
-		m_objectData = m_modelImporter.importObject("teapot.obj", 0.03f);
+		m_objectData = ModelImporter::importObjectObjFile("teapot.obj", 0.03f);
 		std::vector<VertexTextureCoordinate> vertices = m_objectData.vertices;
 
 		// Add on the cube vertices
