@@ -53,6 +53,10 @@ namespace DirectX12Engine
 		// Object importation data
 		ImportStructure										m_objectData;
 
+		// Store the imported objects transform so it can be rotated and translated
+		XMFLOAT3											m_objectRotation;
+		XMFLOAT3											m_objectTranslation;
+
 		// Camera variables
 		SimpleCamera m_camera;
 		float m_aspectRatio;

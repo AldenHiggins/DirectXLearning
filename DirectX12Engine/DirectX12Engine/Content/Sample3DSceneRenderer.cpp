@@ -24,6 +24,11 @@ Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceRes
 	m_camera.Init({ 0, 2, 5 });
 	m_camera.SetMoveSpeed(5.0f);
 
+	// Initialize imported object's position
+	m_objectTranslation.x = 4.0f;
+	m_objectTranslation.y = 1.5f;
+	m_objectTranslation.z = 0.0f;
+
 	CreateDeviceDependentResources();
 	CreateWindowSizeDependentResources();
 }
@@ -122,6 +127,9 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		// Create a command list.
 		DX::ThrowIfFailed(d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_deviceResources->GetCommandAllocator(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
 
+		// Call the fbx model importer
+		ModelImporter importObject;
+		importObject.importObjectFBXFile();
 		// Call the model importer
 		m_objectData = ModelImporter::importObjectObjFile("teapot.obj", 0.03f);
 		std::vector<VertexTextureCoordinate> vertices = m_objectData.vertices;
@@ -269,7 +277,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 			D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
 			heapDesc.NumDescriptors = DX::c_frameCount
 				+ 1 // +1 for the checkerboard texture
-				+ 2; // + 2 for the two model matrices
+				+ 3; // + 3 for the two model matrices
 			heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 			// This flag indicates that this descriptor heap can be bound to the pipeline and that descriptors contained in it can be referenced by a root table.
 			heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
@@ -330,17 +338,16 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 			modelBufferGpuAddress += (3 * c_alignedConstantBufferSize);
 
 			D3D12_CONSTANT_BUFFER_VIEW_DESC desc;
-			desc.BufferLocation = modelBufferGpuAddress;
-			desc.SizeInBytes = c_alignedModelConstantBufferSize;
-			d3dDevice->CreateConstantBufferView(&desc, modelBufferCpuAddress);
+			// Allocate space for all of the model matrices for the objects
+			for (int bufferIterator = 0; bufferIterator < 3; bufferIterator++)
+			{
+				desc.BufferLocation = modelBufferGpuAddress;
+				desc.SizeInBytes = c_alignedModelConstantBufferSize;
+				d3dDevice->CreateConstantBufferView(&desc, modelBufferCpuAddress);
 
-			modelBufferCpuAddress.Offset(m_cbvDescriptorSize);
-			modelBufferGpuAddress += (c_alignedModelConstantBufferSize);
-
-			D3D12_CONSTANT_BUFFER_VIEW_DESC otherBufferDesc;
-			otherBufferDesc.BufferLocation = modelBufferGpuAddress;
-			otherBufferDesc.SizeInBytes = c_alignedModelConstantBufferSize;
-			d3dDevice->CreateConstantBufferView(&otherBufferDesc, modelBufferCpuAddress);
+				modelBufferCpuAddress.Offset(m_cbvDescriptorSize);
+				modelBufferGpuAddress += (c_alignedModelConstantBufferSize);
+			}
 		}
 
 
@@ -478,15 +485,22 @@ bool Sample3DSceneRenderer::Render()
 		XMStoreFloat4x4(&objectModelMatrix->model, XMMatrixIdentity());
 		// Draw the ground
 		m_commandList->DrawIndexedInstanced(6, 1, 36 + m_objectData.objects[0].numberIndices, m_objectData.objects[0].numberVertices, 0);
-		// Draw the diamond
+
+		// Switch the model matrix to point to the imported object's matrix slot in the descriptor heap
+		m_commandList->SetGraphicsRootConstantBufferView(2, m_constantBuffer->GetGPUVirtualAddress() + (3 * c_alignedConstantBufferSize) +  2 * c_alignedModelConstantBufferSize);
+		// Update the imported object's model matrix
+		objectModelMatrix = (ModelMatrixConstantBuffer *)(m_mappedConstantBuffer + (3 * c_alignedConstantBufferSize) + 2 * c_alignedModelConstantBufferSize);
+		XMStoreFloat4x4(&objectModelMatrix->model, XMMatrixTranspose(
+			XMMatrixRotationRollPitchYaw(m_objectRotation.x, m_objectRotation.y, m_objectRotation.z) *
+			XMMatrixTranslation(m_objectTranslation.x, m_objectTranslation.y, m_objectTranslation.z)));
+		// Draw the imported object
 		m_commandList->DrawIndexedInstanced(m_objectData.objects[0].numberIndices, 1, 0, 0, 0);
 
 		// Switch the model matrix to point to the cube's matrix slot in the descriptor heap
 		m_commandList->SetGraphicsRootConstantBufferView(2, m_constantBuffer->GetGPUVirtualAddress() + (3 * c_alignedConstantBufferSize) + c_alignedModelConstantBufferSize);
-
 		// Update the cube's model matrix
 		objectModelMatrix = (ModelMatrixConstantBuffer *)(m_mappedConstantBuffer + (3 * c_alignedConstantBufferSize) + c_alignedModelConstantBufferSize);
-		XMStoreFloat4x4(&objectModelMatrix->model, XMMatrixTranspose(XMMatrixTranslation(0.0f, 1.0f, 0.0f)));
+		XMStoreFloat4x4(&objectModelMatrix->model, XMMatrixTranspose(XMMatrixTranslation(0.0f, 0.5f, 0.0f)));
 		// Draw the cube
 		m_commandList->DrawIndexedInstanced(36, 1, m_objectData.objects[0].numberIndices, m_objectData.objects[0].numberVertices, 0);
 
@@ -562,6 +576,11 @@ void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
 	// Update the constant buffer resource.
 	UINT8* destination = m_mappedConstantBuffer + (m_deviceResources->GetCurrentFrameIndex() * c_alignedConstantBufferSize);
 	memcpy(destination, &m_constantBufferData, sizeof(m_constantBufferData));
+
+	// Update the imported object's position/orientation
+	m_objectTranslation.y += static_cast<float>(timer.GetElapsedSeconds()) * .2f;
+
+	m_objectRotation.y += static_cast<float>(timer.GetElapsedSeconds()) * .6f;
 }
 
 void Sample3DSceneRenderer::KeyUpEvent(Windows::UI::Core::KeyEventArgs^ args)
